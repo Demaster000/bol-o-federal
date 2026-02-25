@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Calendar, Users, Ticket } from 'lucide-react';
+import { Calendar, Users, Trophy } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 
 interface PoolCardProps {
@@ -24,9 +24,10 @@ const LOTTERY_COLORS: Record<string, string> = {
 const PoolCard = ({ pool, onBuy }: PoolCardProps) => {
   const lotteryName = pool.lottery_types?.name ?? '';
   const gradient = LOTTERY_COLORS[lotteryName] || 'from-primary to-primary/80';
-  const remaining = pool.total_quotas - (pool.sold_quotas ?? 0);
-  const progress = ((pool.sold_quotas ?? 0) / pool.total_quotas) * 100;
-  const isClosed = pool.status !== 'open' || remaining <= 0;
+  const soldQuotas = pool.sold_quotas ?? 0;
+  const prizeAmount = pool.prize_amount ? Number(pool.prize_amount) : 0;
+  const estimatedPerQuota = soldQuotas > 0 && prizeAmount > 0 ? prizeAmount / soldQuotas : 0;
+  const isClosed = pool.status !== 'open';
 
   return (
     <motion.div
@@ -46,35 +47,34 @@ const PoolCard = ({ pool, onBuy }: PoolCardProps) => {
           <p className="text-sm text-muted-foreground line-clamp-2">{pool.description}</p>
         )}
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground flex items-center gap-1.5">
-              <Users className="h-3.5 w-3.5" />
-              Cotas vendidas
-            </span>
-            <span className="font-medium text-foreground">
-              {pool.sold_quotas ?? 0} / {pool.total_quotas}
-            </span>
+        {prizeAmount > 0 && (
+          <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Trophy className="h-3.5 w-3.5" />
+              Prêmio total
+            </div>
+            <p className="font-display font-bold text-foreground">
+              R$ {prizeAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </p>
+            {estimatedPerQuota > 0 && (
+              <p className="text-sm text-primary font-semibold">
+                ≈ R$ {estimatedPerQuota.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} por cota
+              </p>
+            )}
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-muted">
-            <div
-              className={`h-full rounded-full bg-gradient-to-r ${gradient} transition-all duration-500`}
-              style={{ width: `${Math.min(progress, 100)}%` }}
-            />
-          </div>
-        </div>
+        )}
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5" />
+            {soldQuotas} cota(s) vendida(s)
+          </span>
+          <span className="flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5" />
             {pool.draw_date
               ? new Date(pool.draw_date).toLocaleDateString('pt-BR')
               : 'A definir'}
-          </div>
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Ticket className="h-3.5 w-3.5" />
-            {remaining} restantes
-          </div>
+          </span>
         </div>
 
         <div className="flex items-center justify-between pt-2 border-t border-border">
@@ -89,7 +89,7 @@ const PoolCard = ({ pool, onBuy }: PoolCardProps) => {
             disabled={isClosed}
             className={isClosed ? '' : `bg-gradient-to-r ${gradient} hover:opacity-90 text-primary-foreground`}
           >
-            {isClosed ? (pool.status === 'drawn' ? 'Encerrado' : 'Esgotado') : 'Comprar Cota'}
+            {isClosed ? (pool.status === 'drawn' ? 'Encerrado' : 'Fechado') : 'Comprar Cota'}
           </Button>
         </div>
       </div>

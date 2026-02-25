@@ -106,7 +106,7 @@ export type Database = {
           sold_quotas?: number | null
           status?: string | null
           title: string
-          total_quotas: number
+          total_quotas?: number
           updated_at?: string | null
         }
         Update: {

@@ -24,16 +24,11 @@ const BuyQuotaDialog = ({ pool, open, onClose, onSuccess }: BuyQuotaDialogProps)
 
   if (!pool) return null;
 
-  const remaining = pool.total_quotas - (pool.sold_quotas ?? 0);
   const total = quantity * pool.price_per_quota;
 
   const handleBuy = async () => {
     if (!user) {
       toast({ title: 'Erro', description: 'Faça login para comprar cotas.', variant: 'destructive' });
-      return;
-    }
-    if (quantity > remaining) {
-      toast({ title: 'Erro', description: 'Quantidade indisponível.', variant: 'destructive' });
       return;
     }
 
@@ -83,21 +78,18 @@ const BuyQuotaDialog = ({ pool, open, onClose, onSuccess }: BuyQuotaDialogProps)
               <Input
                 type="number"
                 min={1}
-                max={remaining}
                 value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, Math.min(remaining, parseInt(e.target.value) || 1)))}
+                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                 className="w-20 text-center bg-muted"
               />
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => setQuantity(Math.min(remaining, quantity + 1))}
-                disabled={quantity >= remaining}
+                onClick={() => setQuantity(quantity + 1)}
               >
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">{remaining} cotas disponíveis</p>
           </div>
 
           <div className="rounded-lg border border-border p-4 space-y-1">

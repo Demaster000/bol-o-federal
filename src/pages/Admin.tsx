@@ -37,7 +37,7 @@ const Admin = () => {
     title: '',
     description: '',
     price_per_quota: '',
-    total_quotas: '',
+    prize_amount: '',
     draw_date: '',
   });
   const [resultText, setResultText] = useState('');
@@ -61,7 +61,7 @@ const Admin = () => {
   if (!user || !isAdmin) return <Navigate to="/" replace />;
 
   const handleCreatePool = async () => {
-    if (!form.lottery_type_id || !form.title || !form.price_per_quota || !form.total_quotas) {
+    if (!form.lottery_type_id || !form.title || !form.price_per_quota || !form.prize_amount) {
       toast({ title: 'Erro', description: 'Preencha todos os campos obrigatórios.', variant: 'destructive' });
       return;
     }
@@ -71,7 +71,7 @@ const Admin = () => {
       title: form.title,
       description: form.description || null,
       price_per_quota: parseFloat(form.price_per_quota),
-      total_quotas: parseInt(form.total_quotas),
+      prize_amount: parseFloat(form.prize_amount),
       draw_date: form.draw_date || null,
     });
     setFormLoading(false);
@@ -80,7 +80,7 @@ const Admin = () => {
     } else {
       toast({ title: 'Bolão criado!' });
       setCreateOpen(false);
-      setForm({ lottery_type_id: '', title: '', description: '', price_per_quota: '', total_quotas: '', draw_date: '' });
+      setForm({ lottery_type_id: '', title: '', description: '', price_per_quota: '', prize_amount: '', draw_date: '' });
       fetchData();
     }
   };
@@ -181,7 +181,8 @@ const Admin = () => {
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {pool.lottery_types?.name} • R$ {pool.price_per_quota.toFixed(2)}/cota •{' '}
-                      {pool.sold_quotas ?? 0}/{pool.total_quotas} vendidas
+                      {pool.sold_quotas ?? 0} cotas vendidas
+                      {pool.prize_amount ? ` • Prêmio: R$ ${Number(pool.prize_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : ''}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -272,8 +273,8 @@ const Admin = () => {
                 <Input className="bg-muted" type="number" step="0.01" min="0.01" placeholder="10.00" value={form.price_per_quota} onChange={(e) => setForm({ ...form, price_per_quota: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Total de cotas *</Label>
-                <Input className="bg-muted" type="number" min="1" placeholder="100" value={form.total_quotas} onChange={(e) => setForm({ ...form, total_quotas: e.target.value })} />
+                <Label>Prêmio estimado (R$) *</Label>
+                <Input className="bg-muted" type="number" step="0.01" min="0" placeholder="130000000" value={form.prize_amount} onChange={(e) => setForm({ ...form, prize_amount: e.target.value })} />
               </div>
             </div>
             <div className="space-y-2">
@@ -326,7 +327,7 @@ const Admin = () => {
             <div className="rounded-lg bg-muted p-4 space-y-1">
               <p className="font-display font-bold text-foreground">{selectedPool?.title}</p>
               <p className="text-sm text-muted-foreground">
-                {selectedPool?.sold_quotas ?? 0}/{selectedPool?.total_quotas} cotas vendidas •
+                {selectedPool?.sold_quotas ?? 0} cotas vendidas •
                 R$ {((selectedPool?.sold_quotas ?? 0) * (selectedPool?.price_per_quota ?? 0)).toFixed(2)} arrecadado
               </p>
               {selectedPool?.result && (
