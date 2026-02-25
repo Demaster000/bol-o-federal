@@ -21,7 +21,10 @@ const Login = () => {
     const { error } = await signIn(email, password);
     setLoading(false);
     if (error) {
-      toast({ title: 'Erro', description: 'Email ou senha incorretos.', variant: 'destructive' });
+      const msg = error.message?.includes('Email not confirmed')
+        ? 'Email ainda não confirmado. Verifique sua caixa de entrada.'
+        : 'Email ou senha incorretos.';
+      toast({ title: 'Erro', description: msg, variant: 'destructive' });
     } else {
       navigate('/');
     }
