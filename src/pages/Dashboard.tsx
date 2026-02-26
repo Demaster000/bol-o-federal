@@ -4,7 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
 import { Tables } from '@/integrations/supabase/types';
-import { Ticket, Calendar, Trophy } from 'lucide-react';
+import { Ticket, Calendar, Trophy, Gift, Bell } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import ClaimPrizeDialog from '@/components/ClaimPrizeDialog';
 
 type PurchaseWithPool = Tables<'pool_purchases'> & {
   pools: (Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null }) | null;
@@ -13,18 +15,68 @@ type PurchaseWithPool = Tables<'pool_purchases'> & {
 const Dashboard = () => {
   const { user } = useAuth();
   const [purchases, setPurchases] = useState<PurchaseWithPool[]>([]);
+  const [claimedPoolIds, setClaimedPoolIds] = useState<Set<string>>(new Set());
+  const [notifications, setNotifications] = useState<Tables<'notifications'>[]>([]);
+  const [claimDialog, setClaimDialog] = useState<{
+    open: boolean;
+    poolId: string;
+    poolTitle: string;
+    lotteryName: string;
+    concurso: string;
+    amount: number;
+  }>({ open: false, poolId: '', poolTitle: '', lotteryName: '', concurso: '', amount: 0 });
 
-  useEffect(() => {
+  const fetchData = async () => {
     if (!user) return;
-    const fetch = async () => {
-      const { data } = await supabase
+    const [purchasesRes, claimsRes, notifRes] = await Promise.all([
+      supabase
         .from('pool_purchases')
         .select('*, pools(*, lottery_types(*))')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      if (data) setPurchases(data as PurchaseWithPool[]);
-    };
-    fetch();
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('prize_claims')
+        .select('pool_id')
+        .eq('user_id', user.id),
+      supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false }),
+    ]);
+    if (purchasesRes.data) setPurchases(purchasesRes.data as PurchaseWithPool[]);
+    if (claimsRes.data) setClaimedPoolIds(new Set(claimsRes.data.map((c: any) => c.pool_id)));
+    if (notifRes.data) setNotifications(notifRes.data as Tables<'notifications'>[]);
+
+    // Mark unread notifications as read
+    if (notifRes.data && notifRes.data.some((n: any) => !n.read)) {
+      await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [user]);
+
+  // Realtime notifications
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel('user-notifications')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${user.id}`,
+      }, () => {
+        fetchData();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const LOTTERY_COLORS: Record<string, string> = {
@@ -47,10 +99,33 @@ const Dashboard = () => {
     paid: 'Pago',
   };
 
+  const calcPrizePerQuota = (pool: PurchaseWithPool['pools'], quantity: number) => {
+    if (!pool || !pool.prize_amount || !pool.sold_quotas || pool.sold_quotas === 0) return 0;
+    const netPrize = Number(pool.prize_amount) * 0.9;
+    return (netPrize / pool.sold_quotas) * quantity;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <div className="container mx-auto px-4 py-10">
+        {/* Notifications */}
+        {notifications.length > 0 && (
+          <div className="mb-6 space-y-2">
+            {notifications.filter(n => !n.read).map(n => (
+              <motion.div
+                key={n.id}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/10 p-3"
+              >
+                <Bell className="h-4 w-4 text-primary shrink-0" />
+                <p className="text-sm text-foreground">{n.message}</p>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
         <h1 className="font-display text-3xl font-bold text-foreground mb-8">
           Meus <span className="text-gradient-gold">Bolões</span>
         </h1>
@@ -60,6 +135,10 @@ const Dashboard = () => {
             {purchases.map((p, i) => {
               const lotteryName = p.pools?.lottery_types?.name ?? '';
               const gradient = LOTTERY_COLORS[lotteryName] || 'from-primary to-primary/80';
+              const isDrawn = p.pools?.status === 'drawn' || p.pools?.status === 'paid';
+              const prizeForUser = calcPrizePerQuota(p.pools, p.quantity);
+              const alreadyClaimed = claimedPoolIds.has(p.pool_id);
+
               return (
                 <motion.div
                   key={p.id}
@@ -90,10 +169,54 @@ const Dashboard = () => {
                           : 'A definir'}
                       </span>
                     </div>
+
+                    {/* Result info */}
+                    {isDrawn && p.pools?.result && (
+                      <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 space-y-1">
+                        <p className="text-xs text-muted-foreground">Números sorteados</p>
+                        <p className="text-sm font-semibold text-foreground">
+                          {(p.pools.result as any).numbers}
+                        </p>
+                      </div>
+                    )}
+
                     <div className="pt-2 border-t border-border">
                       <span className="text-xs text-muted-foreground">Total pago</span>
-                      <p className="font-display font-bold text-gradient-gold">R$ {p.total_paid.toFixed(2)}</p>
+                      <p className="font-display font-bold text-foreground">R$ {p.total_paid.toFixed(2)}</p>
                     </div>
+
+                    {/* Prize per user */}
+                    {isDrawn && prizeForUser > 0 && (
+                      <div className="rounded-lg bg-accent/20 border border-accent/30 p-3">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Gift className="h-4 w-4 text-primary" />
+                          <span className="text-xs text-muted-foreground">Seu prêmio estimado</span>
+                        </div>
+                        <p className="font-display font-bold text-lg text-gradient-gold">
+                          R$ {prizeForUser.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                        {alreadyClaimed ? (
+                          <p className="text-xs text-primary mt-1">✓ Solicitação de recebimento enviada</p>
+                        ) : (
+                          <Button
+                            size="sm"
+                            className="mt-2 bg-gradient-green hover:opacity-90 text-primary-foreground w-full"
+                            onClick={() =>
+                              setClaimDialog({
+                                open: true,
+                                poolId: p.pool_id,
+                                poolTitle: p.pools?.title ?? '',
+                                lotteryName,
+                                concurso: p.pools?.title ?? '',
+                                amount: prizeForUser,
+                              })
+                            }
+                          >
+                            <Gift className="mr-1.5 h-3.5 w-3.5" /> Receber Prêmio
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               );
@@ -107,6 +230,17 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      <ClaimPrizeDialog
+        open={claimDialog.open}
+        onClose={() => setClaimDialog(prev => ({ ...prev, open: false }))}
+        onSuccess={fetchData}
+        poolId={claimDialog.poolId}
+        poolTitle={claimDialog.poolTitle}
+        lotteryName={claimDialog.lotteryName}
+        concurso={claimDialog.concurso}
+        amount={claimDialog.amount}
+      />
     </div>
   );
 };
