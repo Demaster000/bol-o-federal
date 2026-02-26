@@ -63,6 +63,20 @@ const Dashboard = () => {
     }
   };
 
+  const updateClaimStatus = async (poolId: string) => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('prize_claims')
+      .select('pool_id, status')
+      .eq('user_id', user.id)
+      .eq('pool_id', poolId)
+      .single();
+    
+    if (data) {
+      setClaimedPools(prev => new Map(prev).set(poolId, data.status));
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, [user]);
@@ -255,7 +269,7 @@ const Dashboard = () => {
       <ClaimPrizeDialog
         open={claimDialog.open}
         onClose={() => setClaimDialog(prev => ({ ...prev, open: false }))}
-        onSuccess={fetchData}
+        onSuccess={() => updateClaimStatus(claimDialog.poolId)}
         poolId={claimDialog.poolId}
         poolTitle={claimDialog.poolTitle}
         lotteryName={claimDialog.lotteryName}
