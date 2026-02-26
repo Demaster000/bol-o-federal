@@ -12,10 +12,15 @@ type PurchaseWithPool = Tables<'pool_purchases'> & {
   pools: (Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null }) | null;
 };
 
+type ClaimInfo = {
+  pool_id: string;
+  status: string;
+};
+
 const Dashboard = () => {
   const { user } = useAuth();
   const [purchases, setPurchases] = useState<PurchaseWithPool[]>([]);
-  const [claimedPoolIds, setClaimedPoolIds] = useState<Set<string>>(new Set());
+  const [claimedPools, setClaimedPools] = useState<Map<string, string>>(new Map());
   const [notifications, setNotifications] = useState<Tables<'notifications'>[]>([]);
   const [claimDialog, setClaimDialog] = useState<{
     open: boolean;
@@ -36,7 +41,7 @@ const Dashboard = () => {
         .order('created_at', { ascending: false }),
       supabase
         .from('prize_claims')
-        .select('pool_id')
+        .select('pool_id, status')
         .eq('user_id', user.id),
       supabase
         .from('notifications')
@@ -45,7 +50,7 @@ const Dashboard = () => {
         .order('created_at', { ascending: false }),
     ]);
     if (purchasesRes.data) setPurchases(purchasesRes.data as PurchaseWithPool[]);
-    if (claimsRes.data) setClaimedPoolIds(new Set(claimsRes.data.map((c: any) => c.pool_id)));
+    if (claimsRes.data) setClaimedPools(new Map(claimsRes.data.map((c: any) => [c.pool_id, c.status])));
     if (notifRes.data) setNotifications(notifRes.data as Tables<'notifications'>[]);
 
     // Mark unread notifications as read
@@ -137,7 +142,8 @@ const Dashboard = () => {
               const gradient = LOTTERY_COLORS[lotteryName] || 'from-primary to-primary/80';
               const isDrawn = p.pools?.status === 'drawn' || p.pools?.status === 'paid';
               const prizeForUser = calcPrizePerQuota(p.pools, p.quantity);
-              const alreadyClaimed = claimedPoolIds.has(p.pool_id);
+              const alreadyClaimed = claimedPools.has(p.pool_id);
+              const claimStatus = claimedPools.get(p.pool_id);
 
               return (
                 <motion.div
@@ -196,7 +202,22 @@ const Dashboard = () => {
                           R$ {prizeForUser.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </p>
                         {alreadyClaimed ? (
-                          <p className="text-xs text-primary mt-1">✓ Solicitação de recebimento enviada</p>
+                          <div className="space-y-1 mt-1">
+                            <p className="text-xs text-primary">✓ Solicitação de recebimento enviada</p>
+                            <p className="text-xs text-muted-foreground">
+                              Status: <span className={`font-semibold ${
+                                claimStatus === 'paid' ? 'text-green-400' :
+                                claimStatus === 'in_progress' ? 'text-blue-400' :
+                                claimStatus === 'rejected' ? 'text-red-400' :
+                                'text-yellow-400'
+                              }`}>
+                                {claimStatus === 'pending' ? 'Pendente' :
+                                 claimStatus === 'in_progress' ? 'Em Progresso' :
+                                 claimStatus === 'paid' ? 'Pago' :
+                                 claimStatus === 'rejected' ? 'Rejeitado' : claimStatus}
+                              </span>
+                            </p>
+                          </div>
                         ) : (
                           <Button
                             size="sm"
