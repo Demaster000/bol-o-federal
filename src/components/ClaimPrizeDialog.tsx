@@ -186,7 +186,7 @@ Fica eleito o foro da comarca da sede da organizadora, com renúncia expressa a 
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { setAccepted(false); onClose(); } }}>
-      <DialogContent className="bg-card border-border max-w-[95vw] sm:max-w-2xl max-h-[90vh] flex flex-col p-4 sm:p-6">
+      <DialogContent className="bg-card border-border w-[95vw] max-w-2xl max-h-[90vh] flex flex-col p-4 sm:p-6">
         <DialogHeader className="shrink-0">
           <DialogTitle className="font-display text-lg sm:text-xl">Receber Prêmio</DialogTitle>
         </DialogHeader>
@@ -261,9 +261,9 @@ Fica eleito o foro da comarca da sede da organizadora, com renúncia expressa a 
             </div>
 
             <div className="space-y-2">
-              <Label>Nome Completo *</Label>
+              <Label className="text-xs sm:text-sm">Nome Completo *</Label>
               <Input
-                className="bg-muted"
+                className="bg-muted text-xs sm:text-sm"
                 placeholder="Seu nome completo"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
@@ -271,9 +271,9 @@ Fica eleito o foro da comarca da sede da organizadora, com renúncia expressa a 
             </div>
 
             <div className="space-y-2">
-              <Label>CPF *</Label>
+              <Label className="text-xs sm:text-sm">CPF *</Label>
               <Input
-                className="bg-muted"
+                className="bg-muted text-xs sm:text-sm"
                 placeholder="000.000.000-00"
                 value={cpf}
                 onChange={(e) => setCpf(formatCpf(e.target.value))}
@@ -282,9 +282,9 @@ Fica eleito o foro da comarca da sede da organizadora, com renúncia expressa a 
             </div>
 
             <div className="space-y-2">
-              <Label>Chave PIX *</Label>
+              <Label className="text-xs sm:text-sm">Chave PIX *</Label>
               <Input
-                className="bg-muted"
+                className="bg-muted text-xs sm:text-sm"
                 placeholder="CPF, e-mail, celular ou chave aleatória"
                 value={pixKey}
                 onChange={(e) => setPixKey(e.target.value)}
@@ -305,11 +305,11 @@ Fica eleito o foro da comarca da sede da organizadora, com renúncia expressa a 
         </ScrollArea>
 
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2 shrink-0 border-t border-border">
-          <Button variant="outline" onClick={() => { setAccepted(false); onClose(); }}>Cancelar</Button>
+          <Button variant="outline" onClick={() => { setAccepted(false); onClose(); }} className="text-xs sm:text-sm">Cancelar</Button>
           <Button
             onClick={handleClaim}
             disabled={loading || !isFormValid}
-            className="bg-gradient-green hover:opacity-90 text-primary-foreground"
+            className="bg-gradient-green hover:opacity-90 text-primary-foreground text-xs sm:text-sm"
           >
             {loading ? 'Enviando...' : 'ACEITAR'}
           </Button>

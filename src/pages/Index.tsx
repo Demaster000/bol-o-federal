@@ -130,7 +130,7 @@ const Index = () => {
         </div>
 
         {pools.length > 0 ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 w-full">
             {pools.map((pool) => (
               <PoolCard key={pool.id} pool={pool} onBuy={handleBuy} />
             ))}
