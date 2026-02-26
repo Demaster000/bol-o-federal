@@ -41,6 +41,41 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          pool_id: string | null
+          read: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          pool_id?: string | null
+          read?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          pool_id?: string | null
+          read?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "pools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pool_purchases: {
         Row: {
           created_at: string | null
@@ -131,6 +166,50 @@ export type Database = {
             columns: ["lottery_type_id"]
             isOneToOne: false
             referencedRelation: "lottery_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prize_claims: {
+        Row: {
+          accepted_terms: boolean
+          amount: number
+          cpf: string
+          created_at: string
+          id: string
+          pix_key: string
+          pool_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          accepted_terms?: boolean
+          amount: number
+          cpf: string
+          created_at?: string
+          id?: string
+          pix_key: string
+          pool_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          accepted_terms?: boolean
+          amount?: number
+          cpf?: string
+          created_at?: string
+          id?: string
+          pix_key?: string
+          pool_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prize_claims_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "pools"
             referencedColumns: ["id"]
           },
         ]

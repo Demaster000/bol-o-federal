@@ -26,7 +26,9 @@ const PoolCard = ({ pool, onBuy }: PoolCardProps) => {
   const gradient = LOTTERY_COLORS[lotteryName] || 'from-primary to-primary/80';
   const soldQuotas = pool.sold_quotas ?? 0;
   const prizeAmount = pool.prize_amount ? Number(pool.prize_amount) : 0;
-  const estimatedPerQuota = soldQuotas > 0 && prizeAmount > 0 ? prizeAmount / soldQuotas : 0;
+  // Show prize per quota with 10% platform fee already deducted
+  const netPrize = prizeAmount * 0.9;
+  const estimatedPerQuota = soldQuotas > 0 && netPrize > 0 ? netPrize / soldQuotas : 0;
   const isClosed = pool.status !== 'open';
 
   return (

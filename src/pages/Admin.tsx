@@ -93,11 +93,29 @@ const Admin = () => {
       prize_amount: prizeAmount ? parseFloat(prizeAmount) : null,
       status: 'drawn',
     }).eq('id', selectedPool.id);
+
+    if (!error) {
+      // Notify all users who bought quotas for this pool
+      const { data: purchases } = await supabase
+        .from('pool_purchases')
+        .select('user_id')
+        .eq('pool_id', selectedPool.id);
+      if (purchases && purchases.length > 0) {
+        const uniqueUserIds = [...new Set(purchases.map(p => p.user_id))];
+        const notifications = uniqueUserIds.map(userId => ({
+          user_id: userId,
+          pool_id: selectedPool.id,
+          message: `O resultado do bolão "${selectedPool.title}" foi publicado! Acesse Meus Bolões para ver seu prêmio.`,
+        }));
+        await supabase.from('notifications').insert(notifications);
+      }
+    }
+
     setFormLoading(false);
     if (error) {
       toast({ title: 'Erro', description: 'Falha ao publicar resultado.', variant: 'destructive' });
     } else {
-      toast({ title: 'Resultado publicado!' });
+      toast({ title: 'Resultado publicado e usuários notificados!' });
       setResultOpen(false);
       setResultText('');
       setPrizeAmount('');

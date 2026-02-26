@@ -3,11 +3,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Minus, Plus } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface BuyQuotaDialogProps {
   pool: (Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null }) | null;
@@ -19,6 +21,7 @@ interface BuyQuotaDialogProps {
 const BuyQuotaDialog = ({ pool, open, onClose, onSuccess }: BuyQuotaDialogProps) => {
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [accepted, setAccepted] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -29,6 +32,11 @@ const BuyQuotaDialog = ({ pool, open, onClose, onSuccess }: BuyQuotaDialogProps)
   const handleBuy = async () => {
     if (!user) {
       toast({ title: 'Erro', description: 'Faça login para comprar cotas.', variant: 'destructive' });
+      return;
+    }
+
+    if (!accepted) {
+      toast({ title: 'Erro', description: 'Você precisa aceitar os termos para continuar.', variant: 'destructive' });
       return;
     }
 
@@ -46,14 +54,15 @@ const BuyQuotaDialog = ({ pool, open, onClose, onSuccess }: BuyQuotaDialogProps)
     } else {
       toast({ title: 'Sucesso!', description: `Você comprou ${quantity} cota(s)!` });
       setQuantity(1);
+      setAccepted(false);
       onSuccess();
       onClose();
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border">
+    <Dialog open={open} onOpenChange={(o) => { if (!o) { setAccepted(false); onClose(); } }}>
+      <DialogContent className="bg-card border-border max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-display text-xl">Comprar Cotas</DialogTitle>
         </DialogHeader>
@@ -106,11 +115,43 @@ const BuyQuotaDialog = ({ pool, open, onClose, onSuccess }: BuyQuotaDialogProps)
               <span className="text-gradient-gold">R$ {total.toFixed(2)}</span>
             </div>
           </div>
+
+          {/* Consent Terms */}
+          <ScrollArea className="h-40 rounded-lg border border-border p-3">
+            <div className="text-xs text-muted-foreground space-y-2 pr-3">
+              <p className="font-semibold text-foreground">Declaração de Consentimento</p>
+              <p>
+                Ao efetuar o Pix da cota, o participante declara ciência e aceitação plena das regras acima,
+                constituindo acordo consensual e informal, independente da Caixa Econômica Federal, regido pela
+                liberdade contratual (art. 421 e ss. do Código Civil) e boa-fé objetiva (art. 422 do CC).
+                Este bolão não é oficial da Caixa.
+              </p>
+              <p>
+                10% do prêmio será destinado à plataforma como taxa de administração. O valor do prêmio por
+                cota apresentado já considera esse desconto.
+              </p>
+              <p>
+                Pagamento de prêmio acima de 2.500 UFESP (R$ 96 mil em 2026) incidirá ITCMD de 4% + 1% de
+                assessoria jurídica.
+              </p>
+            </div>
+          </ScrollArea>
+
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="accept-terms"
+              checked={accepted}
+              onCheckedChange={(v) => setAccepted(v === true)}
+            />
+            <label htmlFor="accept-terms" className="text-sm text-muted-foreground cursor-pointer leading-tight">
+              Declaro que li e aceito os termos acima.
+            </label>
+          </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={handleBuy} disabled={loading} className="bg-gradient-green hover:opacity-90 text-primary-foreground">
+          <Button variant="outline" onClick={() => { setAccepted(false); onClose(); }}>Cancelar</Button>
+          <Button onClick={handleBuy} disabled={loading || !accepted} className="bg-gradient-green hover:opacity-90 text-primary-foreground">
             {loading ? 'Processando...' : 'Confirmar Compra'}
           </Button>
         </DialogFooter>
