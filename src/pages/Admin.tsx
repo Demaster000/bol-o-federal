@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trophy, Users, Ticket, Eye } from 'lucide-react';
+import { Plus, Pencil, Trophy, Users, Ticket, Eye, DollarSign } from 'lucide-react';
+import AdminClaims from '@/components/AdminClaims';
 import { Navigate } from 'react-router-dom';
 
 type PoolWithType = Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
@@ -177,6 +178,7 @@ const Admin = () => {
         <Tabs defaultValue="pools" className="space-y-6">
           <TabsList className="bg-muted">
             <TabsTrigger value="pools">Bolões</TabsTrigger>
+            <TabsTrigger value="claims"><DollarSign className="mr-1 h-3.5 w-3.5" /> Pagamentos</TabsTrigger>
             <TabsTrigger value="lotteries">Modalidades</TabsTrigger>
           </TabsList>
 
@@ -233,6 +235,10 @@ const Admin = () => {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="claims">
+            <AdminClaims />
           </TabsContent>
 
           <TabsContent value="lotteries">

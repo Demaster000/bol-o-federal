@@ -176,9 +176,11 @@ export type Database = {
           amount: number
           cpf: string
           created_at: string
+          full_name: string
           id: string
           pix_key: string
           pool_id: string
+          signed_contract: Json | null
           status: string
           user_id: string
         }
@@ -187,9 +189,11 @@ export type Database = {
           amount: number
           cpf: string
           created_at?: string
+          full_name?: string
           id?: string
           pix_key: string
           pool_id: string
+          signed_contract?: Json | null
           status?: string
           user_id: string
         }
@@ -198,9 +202,11 @@ export type Database = {
           amount?: number
           cpf?: string
           created_at?: string
+          full_name?: string
           id?: string
           pix_key?: string
           pool_id?: string
+          signed_contract?: Json | null
           status?: string
           user_id?: string
         }
