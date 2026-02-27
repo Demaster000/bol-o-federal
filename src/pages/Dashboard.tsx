@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
 import { Tables } from '@/integrations/supabase/types';
-import { Ticket, Calendar, Trophy, Gift, Bell } from 'lucide-react';
+import { Ticket, Calendar, Trophy, Gift, Bell, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ClaimPrizeDialog from '@/components/ClaimPrizeDialog';
 
@@ -53,7 +53,6 @@ const Dashboard = () => {
     if (claimsRes.data) setClaimedPools(new Map(claimsRes.data.map((c: any) => [c.pool_id, c.status])));
     if (notifRes.data) setNotifications(notifRes.data as Tables<'notifications'>[]);
 
-    // Mark unread notifications as read
     if (notifRes.data && notifRes.data.some((n: any) => !n.read)) {
       await supabase
         .from('notifications')
@@ -71,7 +70,7 @@ const Dashboard = () => {
       .eq('user_id', user.id)
       .eq('pool_id', poolId)
       .single();
-    
+
     if (data) {
       setClaimedPools(prev => new Map(prev).set(poolId, data.status));
     }
@@ -81,19 +80,22 @@ const Dashboard = () => {
     fetchData();
   }, [user]);
 
-  // Realtime notifications
+  // Realtime: pool updates (sold_quotas changes) + notifications
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel('user-notifications')
+      .channel('dashboard-realtime')
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'notifications',
         filter: `user_id=eq.${user.id}`,
-      }, () => {
-        fetchData();
-      })
+      }, () => { fetchData(); })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'pools',
+      }, () => { fetchData(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user]);
@@ -124,11 +126,15 @@ const Dashboard = () => {
     return (netPrize / pool.sold_quotas) * quantity;
   };
 
+  const calcEstimatePerQuota = (pool: PurchaseWithPool['pools']) => {
+    if (!pool || !pool.prize_amount || !pool.sold_quotas || pool.sold_quotas === 0) return 0;
+    return (Number(pool.prize_amount) * 0.9) / pool.sold_quotas;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <div className="container mx-auto px-4 py-10">
-        {/* Notifications */}
         {notifications.length > 0 && (
           <div className="mb-6 space-y-2">
             {notifications.filter(n => !n.read).map(n => (
@@ -155,7 +161,9 @@ const Dashboard = () => {
               const lotteryName = p.pools?.lottery_types?.name ?? '';
               const gradient = LOTTERY_COLORS[lotteryName] || 'from-primary to-primary/80';
               const isDrawn = p.pools?.status === 'drawn' || p.pools?.status === 'paid';
+              const isOpen = p.pools?.status === 'open';
               const prizeForUser = calcPrizePerQuota(p.pools, p.quantity);
+              const estimatePerQuota = calcEstimatePerQuota(p.pools);
               const alreadyClaimed = claimedPools.has(p.pool_id);
               const claimStatus = claimedPools.get(p.pool_id);
 
@@ -189,6 +197,22 @@ const Dashboard = () => {
                           : 'A definir'}
                       </span>
                     </div>
+
+                    {/* Estimated prize for open pools */}
+                    {isOpen && estimatePerQuota > 0 && (
+                      <div className="rounded-lg bg-muted/50 border border-border p-3">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <TrendingUp className="h-4 w-4 text-primary" />
+                          <span className="text-xs text-muted-foreground">Estimativa atual por cota</span>
+                        </div>
+                        <p className="font-display font-bold text-sm text-primary">
+                          R$ {estimatePerQuota.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                        <p className="font-display font-bold text-foreground">
+                          Suas {p.quantity} cota(s): <span className="text-gradient-gold">R$ {(estimatePerQuota * p.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        </p>
+                      </div>
+                    )}
 
                     {/* Result info */}
                     {isDrawn && p.pools?.result && (
