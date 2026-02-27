@@ -230,6 +230,7 @@ const AdminClaims = () => {
         <DialogContent className="bg-card border-border w-[95vw] max-w-2xl max-h-[90vh] flex flex-col p-4 sm:p-6">
           <DialogHeader className="shrink-0">
             <DialogTitle className="font-display text-lg sm:text-xl">Contrato Assinado</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Detalhes do contrato assinado pelo participante.</DialogDescription>
           </DialogHeader>
           <ScrollArea className="flex-1 min-h-0 pr-4">
             {contractDialog.contract && (

@@ -64,6 +64,7 @@ const BuyQuotaDialog = ({ pool, open, onClose, onSuccess }: BuyQuotaDialogProps)
       <DialogContent className="bg-card border-border w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="font-display text-lg sm:text-xl">Comprar Cotas</DialogTitle>
+          <DialogDescription className="text-muted-foreground">Selecione a quantidade de cotas desejada.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
