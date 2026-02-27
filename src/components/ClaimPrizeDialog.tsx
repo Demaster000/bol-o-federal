@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -151,6 +151,7 @@ const ClaimPrizeDialog = ({ open, onClose, onSuccess, poolId, poolTitle, lottery
       <DialogContent className="bg-card border-border w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="font-display text-lg sm:text-xl">Receber Prêmio</DialogTitle>
+          <DialogDescription className="text-muted-foreground">Preencha seus dados para solicitar o recebimento.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
