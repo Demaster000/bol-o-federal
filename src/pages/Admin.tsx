@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
@@ -66,18 +66,29 @@ const Admin = () => {
       toast({ title: 'Erro', description: 'Preencha todos os campos obrigatórios.', variant: 'destructive' });
       return;
     }
+    const priceVal = parseFloat(form.price_per_quota);
+    const prizeVal = parseFloat(form.prize_amount);
+    if (isNaN(priceVal) || priceVal <= 0) {
+      toast({ title: 'Erro', description: 'Valor por cota inválido.', variant: 'destructive' });
+      return;
+    }
+    if (isNaN(prizeVal) || prizeVal < 0) {
+      toast({ title: 'Erro', description: 'Prêmio estimado inválido.', variant: 'destructive' });
+      return;
+    }
     setFormLoading(true);
     const { error } = await supabase.from('pools').insert({
       lottery_type_id: form.lottery_type_id,
       title: form.title,
       description: form.description || null,
-      price_per_quota: parseFloat(form.price_per_quota),
-      prize_amount: parseFloat(form.prize_amount),
+      price_per_quota: priceVal,
+      prize_amount: prizeVal,
       draw_date: form.draw_date || null,
     });
     setFormLoading(false);
     if (error) {
-      toast({ title: 'Erro', description: 'Não foi possível criar o bolão.', variant: 'destructive' });
+      console.error('Create pool error:', error);
+      toast({ title: 'Erro', description: `Não foi possível criar o bolão: ${error.message}`, variant: 'destructive' });
     } else {
       toast({ title: 'Bolão criado!' });
       setCreateOpen(false);
@@ -88,12 +99,29 @@ const Admin = () => {
 
   const handlePublishResult = async () => {
     if (!selectedPool) return;
-    setFormLoading(true);
-    const { error } = await supabase.from('pools').update({
-      result: { numbers: resultText },
-      prize_amount: prizeAmount ? parseFloat(prizeAmount) : null,
+    if (!resultText.trim()) {
+      toast({ title: 'Erro', description: 'Informe os números sorteados.', variant: 'destructive' });
+      return;
+    }
+
+    // Build update payload carefully
+    const updateData: Record<string, any> = {
+      result: { numbers: resultText.trim() },
       status: 'drawn',
-    }).eq('id', selectedPool.id);
+    };
+
+    // Only include prize_amount if the user provided a valid number
+    if (prizeAmount.trim()) {
+      const prizeVal = parseFloat(prizeAmount);
+      if (isNaN(prizeVal) || prizeVal < 0) {
+        toast({ title: 'Erro', description: 'Valor do prêmio inválido.', variant: 'destructive' });
+        return;
+      }
+      updateData.prize_amount = prizeVal;
+    }
+
+    setFormLoading(true);
+    const { error } = await supabase.from('pools').update(updateData).eq('id', selectedPool.id);
 
     if (!error) {
       // Notify all users who bought quotas for this pool
@@ -114,7 +142,8 @@ const Admin = () => {
 
     setFormLoading(false);
     if (error) {
-      toast({ title: 'Erro', description: 'Falha ao publicar resultado.', variant: 'destructive' });
+      console.error('Publish result error:', error);
+      toast({ title: 'Erro', description: `Falha ao publicar resultado: ${error.message}`, variant: 'destructive' });
     } else {
       toast({ title: 'Resultado publicado e usuários notificados!' });
       setResultOpen(false);
@@ -220,6 +249,7 @@ const Admin = () => {
                         className="bg-gradient-gold text-secondary-foreground hover:opacity-90"
                         onClick={() => {
                           setSelectedPool(pool);
+                          setPrizeAmount(pool.prize_amount ? String(pool.prize_amount) : '');
                           setResultOpen(true);
                         }}
                       >
@@ -268,6 +298,7 @@ const Admin = () => {
         <DialogContent className="bg-card border-border max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">Criar Novo Bolão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Preencha os dados para criar um novo bolão.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -320,16 +351,19 @@ const Admin = () => {
         <DialogContent className="bg-card border-border">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">Publicar Resultado</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Informe os números sorteados para o bolão: {selectedPool?.title}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">{selectedPool?.title}</p>
             <div className="space-y-2">
-              <Label>Números sorteados</Label>
+              <Label>Números sorteados *</Label>
               <Input className="bg-muted" placeholder="Ex: 05 - 12 - 23 - 34 - 45 - 56" value={resultText} onChange={(e) => setResultText(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Prêmio (R$)</Label>
-              <Input className="bg-muted" type="number" step="0.01" placeholder="0.00" value={prizeAmount} onChange={(e) => setPrizeAmount(e.target.value)} />
+              <Input className="bg-muted" type="number" step="0.01" placeholder={selectedPool?.prize_amount ? String(selectedPool.prize_amount) : '0.00'} value={prizeAmount} onChange={(e) => setPrizeAmount(e.target.value)} />
+              <p className="text-xs text-muted-foreground">Deixe em branco para manter o valor atual.</p>
             </div>
           </div>
           <DialogFooter>
@@ -346,6 +380,7 @@ const Admin = () => {
         <DialogContent className="bg-card border-border max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">Detalhes do Bolão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Informações e participantes do bolão.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="rounded-lg bg-muted p-4 space-y-1">
