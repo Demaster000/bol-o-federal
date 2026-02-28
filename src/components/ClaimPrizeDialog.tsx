@@ -13,6 +13,7 @@ interface ClaimPrizeDialogProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  purchaseId: string;
   poolId: string;
   poolTitle: string;
   lotteryName: string;
@@ -20,7 +21,7 @@ interface ClaimPrizeDialogProps {
   amount: number;
 }
 
-const ClaimPrizeDialog = ({ open, onClose, onSuccess, poolId, poolTitle, lotteryName, concurso, amount }: ClaimPrizeDialogProps) => {
+const ClaimPrizeDialog = ({ open, onClose, onSuccess, purchaseId, poolId, poolTitle, lotteryName, concurso, amount }: ClaimPrizeDialogProps) => {
   const [fullName, setFullName] = useState('');
   const [cpf, setCpf] = useState('');
   const [pixKey, setPixKey] = useState('');
