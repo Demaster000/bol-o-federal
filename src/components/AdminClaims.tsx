@@ -12,6 +12,7 @@ interface Claim {
   id: string;
   user_id: string;
   pool_id: string;
+  purchase_id: string | null;
   full_name: string;
   cpf: string;
   pix_key: string;
@@ -21,6 +22,7 @@ interface Claim {
   signed_contract: any;
   created_at: string;
   pool_title?: string;
+  purchase_quantity?: number;
 }
 
 const STATUS_OPTIONS = [
@@ -43,9 +45,20 @@ const AdminClaims = () => {
 
     if (data && data.length > 0) {
       const poolIds = [...new Set(data.map(c => c.pool_id))];
-      const { data: pools } = await supabase.from('pools').select('id, title').in('id', poolIds);
-      const poolMap = new Map(pools?.map(p => [p.id, p.title]) ?? []);
-      setClaims(data.map(c => ({ ...c, pool_title: poolMap.get(c.pool_id) ?? 'Bolão' })));
+      const purchaseIds = [...new Set(data.map((c: any) => c.purchase_id).filter(Boolean))];
+      const [poolsRes, purchasesRes] = await Promise.all([
+        supabase.from('pools').select('id, title').in('id', poolIds),
+        purchaseIds.length > 0
+          ? supabase.from('pool_purchases').select('id, quantity').in('id', purchaseIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+      const poolMap = new Map(poolsRes.data?.map(p => [p.id, p.title]) ?? []);
+      const purchaseMap = new Map((purchasesRes.data as any[])?.map(p => [p.id, p.quantity]) ?? []);
+      setClaims(data.map((c: any) => ({
+        ...c,
+        pool_title: poolMap.get(c.pool_id) ?? 'Bolão',
+        purchase_quantity: purchaseMap.get(c.purchase_id) ?? null,
+      })));
     } else {
       setClaims([]);
     }
@@ -157,6 +170,11 @@ const AdminClaims = () => {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-display font-bold text-foreground">{claim.pool_title}</p>
+                    {claim.purchase_quantity && (
+                      <span className="text-xs px-2 py-0.5 rounded-full border bg-muted text-muted-foreground">
+                        {claim.purchase_quantity} cota(s)
+                      </span>
+                    )}
                     {getStatusBadge(claim.status)}
                   </div>
                   <p className="font-display font-bold text-gradient-gold">

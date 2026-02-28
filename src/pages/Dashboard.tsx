@@ -12,24 +12,20 @@ type PurchaseWithPool = Tables<'pool_purchases'> & {
   pools: (Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null }) | null;
 };
 
-type ClaimInfo = {
-  pool_id: string;
-  status: string;
-};
-
 const Dashboard = () => {
   const { user } = useAuth();
   const [purchases, setPurchases] = useState<PurchaseWithPool[]>([]);
-  const [claimedPools, setClaimedPools] = useState<Map<string, string>>(new Map());
+  const [claimedPurchases, setClaimedPurchases] = useState<Map<string, string>>(new Map());
   const [notifications, setNotifications] = useState<Tables<'notifications'>[]>([]);
   const [claimDialog, setClaimDialog] = useState<{
     open: boolean;
+    purchaseId: string;
     poolId: string;
     poolTitle: string;
     lotteryName: string;
     concurso: string;
     amount: number;
-  }>({ open: false, poolId: '', poolTitle: '', lotteryName: '', concurso: '', amount: 0 });
+  }>({ open: false, purchaseId: '', poolId: '', poolTitle: '', lotteryName: '', concurso: '', amount: 0 });
 
   const fetchData = async () => {
     if (!user) return;
@@ -41,7 +37,7 @@ const Dashboard = () => {
         .order('created_at', { ascending: false }),
       supabase
         .from('prize_claims')
-        .select('pool_id, status')
+        .select('purchase_id, status')
         .eq('user_id', user.id),
       supabase
         .from('notifications')
@@ -50,7 +46,13 @@ const Dashboard = () => {
         .order('created_at', { ascending: false }),
     ]);
     if (purchasesRes.data) setPurchases(purchasesRes.data as PurchaseWithPool[]);
-    if (claimsRes.data) setClaimedPools(new Map(claimsRes.data.map((c: any) => [c.pool_id, c.status])));
+    if (claimsRes.data) {
+      const map = new Map<string, string>();
+      claimsRes.data.forEach((c: any) => {
+        if (c.purchase_id) map.set(c.purchase_id, c.status);
+      });
+      setClaimedPurchases(map);
+    }
     if (notifRes.data) setNotifications(notifRes.data as Tables<'notifications'>[]);
 
     if (notifRes.data && notifRes.data.some((n: any) => !n.read)) {
@@ -62,17 +64,17 @@ const Dashboard = () => {
     }
   };
 
-  const updateClaimStatus = async (poolId: string) => {
+  const updateClaimStatus = async (purchaseId: string) => {
     if (!user) return;
     const { data } = await supabase
       .from('prize_claims')
-      .select('pool_id, status')
+      .select('purchase_id, status')
       .eq('user_id', user.id)
-      .eq('pool_id', poolId)
+      .eq('purchase_id', purchaseId)
       .single();
 
     if (data) {
-      setClaimedPools(prev => new Map(prev).set(poolId, data.status));
+      setClaimedPurchases(prev => new Map(prev).set(purchaseId, (data as any).status));
     }
   };
 
@@ -80,7 +82,6 @@ const Dashboard = () => {
     fetchData();
   }, [user]);
 
-  // Realtime: pool updates (sold_quotas changes) + notifications
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -164,8 +165,8 @@ const Dashboard = () => {
               const isOpen = p.pools?.status === 'open';
               const prizeForUser = calcPrizePerQuota(p.pools, p.quantity);
               const estimatePerQuota = calcEstimatePerQuota(p.pools);
-              const alreadyClaimed = claimedPools.has(p.pool_id);
-              const claimStatus = claimedPools.get(p.pool_id);
+              const alreadyClaimed = claimedPurchases.has(p.id);
+              const claimStatus = claimedPurchases.get(p.id);
 
               return (
                 <motion.div
@@ -198,7 +199,6 @@ const Dashboard = () => {
                       </span>
                     </div>
 
-                    {/* Estimated prize for open pools */}
                     {isOpen && estimatePerQuota > 0 && (
                       <div className="rounded-lg bg-muted/50 border border-border p-3">
                         <div className="flex items-center gap-1.5 mb-1">
@@ -214,7 +214,6 @@ const Dashboard = () => {
                       </div>
                     )}
 
-                    {/* Result info */}
                     {isDrawn && p.pools?.result && (
                       <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 space-y-1">
                         <p className="text-xs text-muted-foreground">Números sorteados</p>
@@ -229,7 +228,6 @@ const Dashboard = () => {
                       <p className="font-display font-bold text-foreground">R$ {p.total_paid.toFixed(2)}</p>
                     </div>
 
-                    {/* Prize per user */}
                     {isDrawn && prizeForUser > 0 && (
                       <div className="rounded-lg bg-accent/20 border border-accent/30 p-3">
                         <div className="flex items-center gap-1.5 mb-1">
@@ -263,6 +261,7 @@ const Dashboard = () => {
                             onClick={() =>
                               setClaimDialog({
                                 open: true,
+                                purchaseId: p.id,
                                 poolId: p.pool_id,
                                 poolTitle: p.pools?.title ?? '',
                                 lotteryName,
@@ -293,7 +292,8 @@ const Dashboard = () => {
       <ClaimPrizeDialog
         open={claimDialog.open}
         onClose={() => setClaimDialog(prev => ({ ...prev, open: false }))}
-        onSuccess={() => updateClaimStatus(claimDialog.poolId)}
+        onSuccess={() => updateClaimStatus(claimDialog.purchaseId)}
+        purchaseId={claimDialog.purchaseId}
         poolId={claimDialog.poolId}
         poolTitle={claimDialog.poolTitle}
         lotteryName={claimDialog.lotteryName}

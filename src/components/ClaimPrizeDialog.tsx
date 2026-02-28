@@ -13,6 +13,7 @@ interface ClaimPrizeDialogProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  purchaseId: string;
   poolId: string;
   poolTitle: string;
   lotteryName: string;
@@ -20,7 +21,7 @@ interface ClaimPrizeDialogProps {
   amount: number;
 }
 
-const ClaimPrizeDialog = ({ open, onClose, onSuccess, poolId, poolTitle, lotteryName, concurso, amount }: ClaimPrizeDialogProps) => {
+const ClaimPrizeDialog = ({ open, onClose, onSuccess, purchaseId, poolId, poolTitle, lotteryName, concurso, amount }: ClaimPrizeDialogProps) => {
   const [fullName, setFullName] = useState('');
   const [cpf, setCpf] = useState('');
   const [pixKey, setPixKey] = useState('');
@@ -118,13 +119,14 @@ const ClaimPrizeDialog = ({ open, onClose, onSuccess, poolId, poolTitle, lottery
     const { error } = await supabase.from('prize_claims').insert({
       user_id: user.id,
       pool_id: poolId,
+      purchase_id: purchaseId,
       full_name: fullName.trim(),
       cpf: cleanCpf,
       pix_key: pixKey.trim(),
       amount,
       accepted_terms: true,
       signed_contract: signedContract,
-    });
+    } as any);
     setLoading(false);
 
     if (error) {
