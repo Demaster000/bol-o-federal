@@ -12,6 +12,7 @@ interface Claim {
   id: string;
   user_id: string;
   pool_id: string;
+  purchase_id: string | null;
   full_name: string;
   cpf: string;
   pix_key: string;
@@ -21,6 +22,7 @@ interface Claim {
   signed_contract: any;
   created_at: string;
   pool_title?: string;
+  purchase_quantity?: number;
 }
 
 const STATUS_OPTIONS = [

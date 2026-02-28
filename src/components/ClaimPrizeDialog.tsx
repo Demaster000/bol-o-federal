@@ -119,13 +119,14 @@ const ClaimPrizeDialog = ({ open, onClose, onSuccess, purchaseId, poolId, poolTi
     const { error } = await supabase.from('prize_claims').insert({
       user_id: user.id,
       pool_id: poolId,
+      purchase_id: purchaseId,
       full_name: fullName.trim(),
       cpf: cleanCpf,
       pix_key: pixKey.trim(),
       amount,
       accepted_terms: true,
       signed_contract: signedContract,
-    });
+    } as any);
     setLoading(false);
 
     if (error) {
