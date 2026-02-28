@@ -170,6 +170,11 @@ const AdminClaims = () => {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-display font-bold text-foreground">{claim.pool_title}</p>
+                    {claim.purchase_quantity && (
+                      <span className="text-xs px-2 py-0.5 rounded-full border bg-muted text-muted-foreground">
+                        {claim.purchase_quantity} cota(s)
+                      </span>
+                    )}
                     {getStatusBadge(claim.status)}
                   </div>
                   <p className="font-display font-bold text-gradient-gold">
