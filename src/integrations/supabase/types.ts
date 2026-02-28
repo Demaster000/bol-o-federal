@@ -180,6 +180,7 @@ export type Database = {
           id: string
           pix_key: string
           pool_id: string
+          purchase_id: string | null
           signed_contract: Json | null
           status: string
           user_id: string
@@ -193,6 +194,7 @@ export type Database = {
           id?: string
           pix_key: string
           pool_id: string
+          purchase_id?: string | null
           signed_contract?: Json | null
           status?: string
           user_id: string
@@ -206,6 +208,7 @@ export type Database = {
           id?: string
           pix_key?: string
           pool_id?: string
+          purchase_id?: string | null
           signed_contract?: Json | null
           status?: string
           user_id?: string
@@ -216,6 +219,13 @@ export type Database = {
             columns: ["pool_id"]
             isOneToOne: false
             referencedRelation: "pools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prize_claims_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "pool_purchases"
             referencedColumns: ["id"]
           },
         ]
