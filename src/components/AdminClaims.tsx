@@ -45,9 +45,20 @@ const AdminClaims = () => {
 
     if (data && data.length > 0) {
       const poolIds = [...new Set(data.map(c => c.pool_id))];
-      const { data: pools } = await supabase.from('pools').select('id, title').in('id', poolIds);
-      const poolMap = new Map(pools?.map(p => [p.id, p.title]) ?? []);
-      setClaims(data.map(c => ({ ...c, pool_title: poolMap.get(c.pool_id) ?? 'Bolão' })));
+      const purchaseIds = [...new Set(data.map((c: any) => c.purchase_id).filter(Boolean))];
+      const [poolsRes, purchasesRes] = await Promise.all([
+        supabase.from('pools').select('id, title').in('id', poolIds),
+        purchaseIds.length > 0
+          ? supabase.from('pool_purchases').select('id, quantity').in('id', purchaseIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+      const poolMap = new Map(poolsRes.data?.map(p => [p.id, p.title]) ?? []);
+      const purchaseMap = new Map((purchasesRes.data as any[])?.map(p => [p.id, p.quantity]) ?? []);
+      setClaims(data.map((c: any) => ({
+        ...c,
+        pool_title: poolMap.get(c.pool_id) ?? 'Bolão',
+        purchase_quantity: purchaseMap.get(c.purchase_id) ?? null,
+      })));
     } else {
       setClaims([]);
     }
