@@ -205,10 +205,11 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="pools" className="space-y-6">
-          <TabsList className="bg-muted">
+          <TabsList className="bg-muted flex-wrap">
             <TabsTrigger value="pools">Bolões</TabsTrigger>
             <TabsTrigger value="claims"><DollarSign className="mr-1 h-3.5 w-3.5" /> Pagamentos</TabsTrigger>
             <TabsTrigger value="lotteries">Modalidades</TabsTrigger>
+            <TabsTrigger value="pix-settings">PIX / EFI</TabsTrigger>
           </TabsList>
 
           <TabsContent value="pools">
