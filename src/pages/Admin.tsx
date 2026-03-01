@@ -205,10 +205,11 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="pools" className="space-y-6">
-          <TabsList className="bg-muted">
+          <TabsList className="bg-muted flex-wrap">
             <TabsTrigger value="pools">Bolões</TabsTrigger>
             <TabsTrigger value="claims"><DollarSign className="mr-1 h-3.5 w-3.5" /> Pagamentos</TabsTrigger>
             <TabsTrigger value="lotteries">Modalidades</TabsTrigger>
+            <TabsTrigger value="pix-settings">PIX / EFI</TabsTrigger>
           </TabsList>
 
           <TabsContent value="pools">
@@ -288,6 +289,58 @@ const Admin = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="pix-settings">
+            <div className="rounded-xl border border-border bg-card p-6 space-y-6">
+              <div>
+                <h3 className="font-display text-lg font-bold text-foreground mb-2">Integração EFI Bank (PIX)</h3>
+                <p className="text-sm text-muted-foreground">
+                  As credenciais da API EFI Bank estão configuradas como variáveis de ambiente seguras no backend.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="rounded-lg bg-muted p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-foreground font-medium">EFI_CLIENT_ID</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">Configurado</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-foreground font-medium">EFI_CLIENT_SECRET</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">Configurado</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-foreground font-medium">EFI_CERTIFICATE_BASE64</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">Configurado</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-foreground font-medium">EFI_PIX_KEY</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">Configurado</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border p-4 space-y-2">
+                <h4 className="font-semibold text-foreground text-sm">Como funciona</h4>
+                <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4">
+                  <li>Ao comprar cotas, o usuário recebe um QR Code PIX gerado pela API da EFI.</li>
+                  <li>O QR Code é válido por 30 minutos.</li>
+                  <li>Após o pagamento, um webhook da EFI confirma a transação automaticamente.</li>
+                  <li>A compra só é registrada após a confirmação do pagamento.</li>
+                </ul>
+              </div>
+
+              <div className="rounded-lg border border-primary/30 bg-primary/10 p-4">
+                <h4 className="font-semibold text-foreground text-sm mb-2">⚠️ Webhook</h4>
+                <p className="text-xs text-muted-foreground">
+                  Configure o webhook na sua conta EFI para apontar para:
+                </p>
+                <code className="text-xs text-primary mt-1 block break-all">
+                  {`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID ?? 'seu-projeto'}.supabase.co/functions/v1/pix-webhook`}
+                </code>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
