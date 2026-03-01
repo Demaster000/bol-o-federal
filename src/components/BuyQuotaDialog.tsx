@@ -71,6 +71,8 @@ const BuyQuotaDialog = ({ pool, open, onClose, onSuccess }: BuyQuotaDialogProps)
     return () => clearInterval(interval);
   }, [pixState.step, pixState.expiresAt]);
 
+  if (!pool) return null;
+
   const startPolling = (paymentId: string) => {
     if (pollRef.current) clearInterval(pollRef.current);
 
