@@ -76,6 +76,65 @@ export type Database = {
           },
         ]
       }
+      pix_payments: {
+        Row: {
+          created_at: string
+          efi_charge_id: string | null
+          expires_at: string
+          id: string
+          loc_id: string | null
+          paid_at: string | null
+          pool_id: string
+          qr_code: string | null
+          qr_code_image: string | null
+          quantity: number
+          status: string
+          total_amount: number
+          txid: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          efi_charge_id?: string | null
+          expires_at?: string
+          id?: string
+          loc_id?: string | null
+          paid_at?: string | null
+          pool_id: string
+          qr_code?: string | null
+          qr_code_image?: string | null
+          quantity?: number
+          status?: string
+          total_amount: number
+          txid?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          efi_charge_id?: string | null
+          expires_at?: string
+          id?: string
+          loc_id?: string | null
+          paid_at?: string | null
+          pool_id?: string
+          qr_code?: string | null
+          qr_code_image?: string | null
+          quantity?: number
+          status?: string
+          total_amount?: number
+          txid?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pix_payments_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "pools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pool_purchases: {
         Row: {
           created_at: string | null
