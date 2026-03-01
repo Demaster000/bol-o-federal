@@ -37,9 +37,7 @@ const BuyQuotaDialog = ({ pool, open, onClose, onSuccess }: BuyQuotaDialogProps)
   const { user } = useAuth();
   const { toast } = useToast();
 
-  if (!pool) return null;
-
-  const total = quantity * pool.price_per_quota;
+  const total = pool ? quantity * pool.price_per_quota : 0;
 
   // Cleanup polling on unmount or close
   useEffect(() => {
