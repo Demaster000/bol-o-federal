@@ -47,10 +47,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // First check local DB
     const { data: payment, error } = await supabase
       .from("pix_payments")
-      .select("id, status, paid_at, expires_at, txid")
+      .select("id, status, paid_at, expires_at, txid, pool_id, quantity, total_amount")
       .eq("id", payment_id)
       .eq("user_id", userId)
       .single();
@@ -62,7 +61,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // If already paid or error, return immediately
     if (payment.status !== "pending") {
       return new Response(
         JSON.stringify({ status: payment.status, paid_at: payment.paid_at }),
@@ -71,16 +69,14 @@ Deno.serve(async (req) => {
     }
 
     // Check expiry
-    const now = new Date();
-    const expiresAt = new Date(payment.expires_at);
-    if (now > expiresAt) {
+    if (new Date() > new Date(payment.expires_at)) {
       return new Response(
         JSON.stringify({ status: "expired" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Also check Mercado Pago directly for faster confirmation
+    // Check Mercado Pago directly for faster confirmation
     const mpAccessToken = Deno.env.get("MP_ACCESS_TOKEN");
     if (mpAccessToken && payment.txid) {
       try {
@@ -91,26 +87,26 @@ Deno.serve(async (req) => {
         if (mpResponse.ok) {
           const mpPayment = await mpResponse.json();
           if (mpPayment.status === "approved") {
-            // Update in DB via service role
             const supabaseAdmin = createClient(
               supabaseUrl,
               Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
             );
+
+            const paidAt = new Date().toISOString();
             await supabaseAdmin
               .from("pix_payments")
-              .update({ status: "paid", paid_at: new Date().toISOString() })
+              .update({ status: "paid", paid_at: paidAt })
               .eq("id", payment.id);
 
-            // Create purchase
             await supabaseAdmin.from("pool_purchases").insert({
-              pool_id: (await supabaseAdmin.from("pix_payments").select("pool_id, user_id, quantity, total_amount").eq("id", payment.id).single()).data!.pool_id,
+              pool_id: payment.pool_id,
               user_id: userId,
-              quantity: (await supabaseAdmin.from("pix_payments").select("quantity").eq("id", payment.id).single()).data!.quantity,
-              total_paid: (await supabaseAdmin.from("pix_payments").select("total_amount").eq("id", payment.id).single()).data!.total_amount,
+              quantity: payment.quantity,
+              total_paid: payment.total_amount,
             });
 
             return new Response(
-              JSON.stringify({ status: "paid", paid_at: new Date().toISOString() }),
+              JSON.stringify({ status: "paid", paid_at: paidAt }),
               { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
