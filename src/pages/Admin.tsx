@@ -9,11 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trophy, Users, Ticket, Eye, DollarSign } from 'lucide-react';
+import { Plus, Pencil, Trophy, Users, Ticket, Eye, DollarSign, Trash2 } from 'lucide-react';
 import AdminClaims from '@/components/AdminClaims';
 import { Navigate } from 'react-router-dom';
 
@@ -66,18 +66,29 @@ const Admin = () => {
       toast({ title: 'Erro', description: 'Preencha todos os campos obrigatórios.', variant: 'destructive' });
       return;
     }
+    const priceVal = parseFloat(form.price_per_quota);
+    const prizeVal = parseFloat(form.prize_amount);
+    if (isNaN(priceVal) || priceVal <= 0) {
+      toast({ title: 'Erro', description: 'Valor por cota inválido.', variant: 'destructive' });
+      return;
+    }
+    if (isNaN(prizeVal) || prizeVal < 0) {
+      toast({ title: 'Erro', description: 'Prêmio estimado inválido.', variant: 'destructive' });
+      return;
+    }
     setFormLoading(true);
     const { error } = await supabase.from('pools').insert({
       lottery_type_id: form.lottery_type_id,
       title: form.title,
       description: form.description || null,
-      price_per_quota: parseFloat(form.price_per_quota),
-      prize_amount: parseFloat(form.prize_amount),
+      price_per_quota: priceVal,
+      prize_amount: prizeVal,
       draw_date: form.draw_date || null,
     });
     setFormLoading(false);
     if (error) {
-      toast({ title: 'Erro', description: 'Não foi possível criar o bolão.', variant: 'destructive' });
+      console.error('Create pool error:', error);
+      toast({ title: 'Erro', description: `Não foi possível criar o bolão: ${error.message}`, variant: 'destructive' });
     } else {
       toast({ title: 'Bolão criado!' });
       setCreateOpen(false);
@@ -88,12 +99,29 @@ const Admin = () => {
 
   const handlePublishResult = async () => {
     if (!selectedPool) return;
-    setFormLoading(true);
-    const { error } = await supabase.from('pools').update({
-      result: { numbers: resultText },
-      prize_amount: prizeAmount ? parseFloat(prizeAmount) : null,
+    if (!resultText.trim()) {
+      toast({ title: 'Erro', description: 'Informe os números sorteados.', variant: 'destructive' });
+      return;
+    }
+
+    // Build update payload carefully
+    const updateData: Record<string, any> = {
+      result: { numbers: resultText.trim() },
       status: 'drawn',
-    }).eq('id', selectedPool.id);
+    };
+
+    // Only include prize_amount if the user provided a valid number
+    if (prizeAmount.trim()) {
+      const prizeVal = parseFloat(prizeAmount);
+      if (isNaN(prizeVal) || prizeVal < 0) {
+        toast({ title: 'Erro', description: 'Valor do prêmio inválido.', variant: 'destructive' });
+        return;
+      }
+      updateData.prize_amount = prizeVal;
+    }
+
+    setFormLoading(true);
+    const { error } = await supabase.from('pools').update(updateData).eq('id', selectedPool.id);
 
     if (!error) {
       // Notify all users who bought quotas for this pool
@@ -114,7 +142,8 @@ const Admin = () => {
 
     setFormLoading(false);
     if (error) {
-      toast({ title: 'Erro', description: 'Falha ao publicar resultado.', variant: 'destructive' });
+      console.error('Publish result error:', error);
+      toast({ title: 'Erro', description: `Falha ao publicar resultado: ${error.message}`, variant: 'destructive' });
     } else {
       toast({ title: 'Resultado publicado e usuários notificados!' });
       setResultOpen(false);
@@ -153,6 +182,24 @@ const Admin = () => {
     toast({ title: 'Bolão fechado para novas compras.' });
   };
 
+  const handleDeletePool = async (pool: PoolWithType) => {
+    if (!window.confirm(`Tem certeza que deseja excluir o bolão "${pool.title}"? Esta ação não pode ser desfeita.`)) {
+      return;
+    }
+    
+    setFormLoading(true);
+    const { error } = await supabase.from('pools').delete().eq('id', pool.id);
+    setFormLoading(false);
+    
+    if (error) {
+      console.error('Delete pool error:', error);
+      toast({ title: 'Erro', description: `Falha ao excluir bolão: ${error.message}`, variant: 'destructive' });
+    } else {
+      toast({ title: 'Bolão excluído com sucesso!', description: 'O bolão foi removido e não aparecerá mais para os usuários.' });
+      fetchData();
+    }
+  };
+
   const statusLabel: Record<string, string> = {
     open: 'Aberto', closed: 'Fechado', drawn: 'Sorteado', paid: 'Pago',
   };
@@ -176,10 +223,11 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="pools" className="space-y-6">
-          <TabsList className="bg-muted">
+          <TabsList className="bg-muted flex-wrap">
             <TabsTrigger value="pools">Bolões</TabsTrigger>
             <TabsTrigger value="claims"><DollarSign className="mr-1 h-3.5 w-3.5" /> Pagamentos</TabsTrigger>
             <TabsTrigger value="lotteries">Modalidades</TabsTrigger>
+            <TabsTrigger value="pix-settings">PIX / Mercado Pago</TabsTrigger>
           </TabsList>
 
           <TabsContent value="pools">
@@ -220,12 +268,21 @@ const Admin = () => {
                         className="bg-gradient-gold text-secondary-foreground hover:opacity-90"
                         onClick={() => {
                           setSelectedPool(pool);
+                          setPrizeAmount(pool.prize_amount ? String(pool.prize_amount) : '');
                           setResultOpen(true);
                         }}
                       >
                         <Trophy className="mr-1 h-3.5 w-3.5" /> Resultado
                       </Button>
                     )}
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeletePool(pool)}
+                      disabled={formLoading}
+                    >
+                      <Trash2 className="mr-1 h-3.5 w-3.5" /> Excluir
+                    </Button>
                   </div>
                 </motion.div>
               ))}
@@ -260,6 +317,50 @@ const Admin = () => {
               ))}
             </div>
           </TabsContent>
+
+          <TabsContent value="pix-settings">
+            <div className="rounded-xl border border-border bg-card p-6 space-y-6">
+              <div>
+                <h3 className="font-display text-lg font-bold text-foreground mb-2">Integração Mercado Pago (PIX)</h3>
+                <p className="text-sm text-muted-foreground">
+                  O Access Token do Mercado Pago está configurado como variável de ambiente segura no backend.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="rounded-lg bg-muted p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-foreground font-medium">MP_ACCESS_TOKEN</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">Configurado</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border p-4 space-y-2">
+                <h4 className="font-semibold text-foreground text-sm">Como funciona</h4>
+                <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4">
+                  <li>Ao comprar cotas, o usuário recebe um QR Code PIX gerado pela API do Mercado Pago.</li>
+                  <li>O QR Code é válido por 30 minutos.</li>
+                  <li>O sistema consulta o Mercado Pago a cada 5 segundos para confirmar o pagamento.</li>
+                  <li>Opcionalmente, o webhook do Mercado Pago também confirma automaticamente.</li>
+                  <li>A compra só é registrada após a confirmação do pagamento.</li>
+                </ul>
+              </div>
+
+              <div className="rounded-lg border border-primary/30 bg-primary/10 p-4">
+                <h4 className="font-semibold text-foreground text-sm mb-2">⚠️ Webhook (Opcional)</h4>
+                <p className="text-xs text-muted-foreground">
+                  Configure a URL de notificação IPN no painel do Mercado Pago:
+                </p>
+                <code className="text-xs text-primary mt-1 block break-all">
+                  {`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID ?? 'seu-projeto'}.supabase.co/functions/v1/pix-webhook`}
+                </code>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Mesmo sem o webhook, o polling do frontend confirma o pagamento automaticamente.
+                </p>
+              </div>
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -268,6 +369,7 @@ const Admin = () => {
         <DialogContent className="bg-card border-border max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">Criar Novo Bolão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Preencha os dados para criar um novo bolão.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -320,16 +422,19 @@ const Admin = () => {
         <DialogContent className="bg-card border-border">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">Publicar Resultado</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Informe os números sorteados para o bolão: {selectedPool?.title}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">{selectedPool?.title}</p>
             <div className="space-y-2">
-              <Label>Números sorteados</Label>
+              <Label>Números sorteados *</Label>
               <Input className="bg-muted" placeholder="Ex: 05 - 12 - 23 - 34 - 45 - 56" value={resultText} onChange={(e) => setResultText(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Prêmio (R$)</Label>
-              <Input className="bg-muted" type="number" step="0.01" placeholder="0.00" value={prizeAmount} onChange={(e) => setPrizeAmount(e.target.value)} />
+              <Input className="bg-muted" type="number" step="0.01" placeholder={selectedPool?.prize_amount ? String(selectedPool.prize_amount) : '0.00'} value={prizeAmount} onChange={(e) => setPrizeAmount(e.target.value)} />
+              <p className="text-xs text-muted-foreground">Deixe em branco para manter o valor atual.</p>
             </div>
           </div>
           <DialogFooter>
@@ -346,6 +451,7 @@ const Admin = () => {
         <DialogContent className="bg-card border-border max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">Detalhes do Bolão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Informações e participantes do bolão.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="rounded-lg bg-muted p-4 space-y-1">

@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
 import { Tables } from '@/integrations/supabase/types';
-import { Ticket, Calendar, Trophy, Gift, Bell } from 'lucide-react';
+import { Ticket, Calendar, Trophy, Gift, Bell, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ClaimPrizeDialog from '@/components/ClaimPrizeDialog';
 
@@ -12,24 +12,20 @@ type PurchaseWithPool = Tables<'pool_purchases'> & {
   pools: (Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null }) | null;
 };
 
-type ClaimInfo = {
-  pool_id: string;
-  status: string;
-};
-
 const Dashboard = () => {
   const { user } = useAuth();
   const [purchases, setPurchases] = useState<PurchaseWithPool[]>([]);
-  const [claimedPools, setClaimedPools] = useState<Map<string, string>>(new Map());
+  const [claimedPurchases, setClaimedPurchases] = useState<Map<string, string>>(new Map());
   const [notifications, setNotifications] = useState<Tables<'notifications'>[]>([]);
   const [claimDialog, setClaimDialog] = useState<{
     open: boolean;
+    purchaseId: string;
     poolId: string;
     poolTitle: string;
     lotteryName: string;
     concurso: string;
     amount: number;
-  }>({ open: false, poolId: '', poolTitle: '', lotteryName: '', concurso: '', amount: 0 });
+  }>({ open: false, purchaseId: '', poolId: '', poolTitle: '', lotteryName: '', concurso: '', amount: 0 });
 
   const fetchData = async () => {
     if (!user) return;
@@ -41,7 +37,7 @@ const Dashboard = () => {
         .order('created_at', { ascending: false }),
       supabase
         .from('prize_claims')
-        .select('pool_id, status')
+        .select('purchase_id, status')
         .eq('user_id', user.id),
       supabase
         .from('notifications')
@@ -50,10 +46,15 @@ const Dashboard = () => {
         .order('created_at', { ascending: false }),
     ]);
     if (purchasesRes.data) setPurchases(purchasesRes.data as PurchaseWithPool[]);
-    if (claimsRes.data) setClaimedPools(new Map(claimsRes.data.map((c: any) => [c.pool_id, c.status])));
+    if (claimsRes.data) {
+      const map = new Map<string, string>();
+      claimsRes.data.forEach((c: any) => {
+        if (c.purchase_id) map.set(c.purchase_id, c.status);
+      });
+      setClaimedPurchases(map);
+    }
     if (notifRes.data) setNotifications(notifRes.data as Tables<'notifications'>[]);
 
-    // Mark unread notifications as read
     if (notifRes.data && notifRes.data.some((n: any) => !n.read)) {
       await supabase
         .from('notifications')
@@ -63,17 +64,17 @@ const Dashboard = () => {
     }
   };
 
-  const updateClaimStatus = async (poolId: string) => {
+  const updateClaimStatus = async (purchaseId: string) => {
     if (!user) return;
     const { data } = await supabase
       .from('prize_claims')
-      .select('pool_id, status')
+      .select('purchase_id, status')
       .eq('user_id', user.id)
-      .eq('pool_id', poolId)
+      .eq('purchase_id', purchaseId)
       .single();
-    
+
     if (data) {
-      setClaimedPools(prev => new Map(prev).set(poolId, data.status));
+      setClaimedPurchases(prev => new Map(prev).set(purchaseId, (data as any).status));
     }
   };
 
@@ -81,19 +82,26 @@ const Dashboard = () => {
     fetchData();
   }, [user]);
 
-  // Realtime notifications
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel('user-notifications')
+      .channel('dashboard-realtime')
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'notifications',
         filter: `user_id=eq.${user.id}`,
-      }, () => {
-        fetchData();
-      })
+      }, () => { fetchData(); })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'pools',
+      }, () => { fetchData(); })
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'pools',
+      }, () => { fetchData(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user]);
@@ -124,11 +132,15 @@ const Dashboard = () => {
     return (netPrize / pool.sold_quotas) * quantity;
   };
 
+  const calcEstimatePerQuota = (pool: PurchaseWithPool['pools']) => {
+    if (!pool || !pool.prize_amount || !pool.sold_quotas || pool.sold_quotas === 0) return 0;
+    return (Number(pool.prize_amount) * 0.9) / pool.sold_quotas;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <div className="container mx-auto px-4 py-10">
-        {/* Notifications */}
         {notifications.length > 0 && (
           <div className="mb-6 space-y-2">
             {notifications.filter(n => !n.read).map(n => (
@@ -155,9 +167,11 @@ const Dashboard = () => {
               const lotteryName = p.pools?.lottery_types?.name ?? '';
               const gradient = LOTTERY_COLORS[lotteryName] || 'from-primary to-primary/80';
               const isDrawn = p.pools?.status === 'drawn' || p.pools?.status === 'paid';
+              const isOpen = p.pools?.status === 'open';
               const prizeForUser = calcPrizePerQuota(p.pools, p.quantity);
-              const alreadyClaimed = claimedPools.has(p.pool_id);
-              const claimStatus = claimedPools.get(p.pool_id);
+              const estimatePerQuota = calcEstimatePerQuota(p.pools);
+              const alreadyClaimed = claimedPurchases.has(p.id);
+              const claimStatus = claimedPurchases.get(p.id);
 
               return (
                 <motion.div
@@ -190,7 +204,21 @@ const Dashboard = () => {
                       </span>
                     </div>
 
-                    {/* Result info */}
+                    {isOpen && estimatePerQuota > 0 && (
+                      <div className="rounded-lg bg-muted/50 border border-border p-3">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <TrendingUp className="h-4 w-4 text-primary" />
+                          <span className="text-xs text-muted-foreground">Estimativa atual por cota</span>
+                        </div>
+                        <p className="font-display font-bold text-sm text-primary">
+                          R$ {estimatePerQuota.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                        <p className="font-display font-bold text-foreground">
+                          Suas {p.quantity} cota(s): <span className="text-gradient-gold">R$ {(estimatePerQuota * p.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        </p>
+                      </div>
+                    )}
+
                     {isDrawn && p.pools?.result && (
                       <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 space-y-1">
                         <p className="text-xs text-muted-foreground">Números sorteados</p>
@@ -205,7 +233,6 @@ const Dashboard = () => {
                       <p className="font-display font-bold text-foreground">R$ {p.total_paid.toFixed(2)}</p>
                     </div>
 
-                    {/* Prize per user */}
                     {isDrawn && prizeForUser > 0 && (
                       <div className="rounded-lg bg-accent/20 border border-accent/30 p-3">
                         <div className="flex items-center gap-1.5 mb-1">
@@ -239,6 +266,7 @@ const Dashboard = () => {
                             onClick={() =>
                               setClaimDialog({
                                 open: true,
+                                purchaseId: p.id,
                                 poolId: p.pool_id,
                                 poolTitle: p.pools?.title ?? '',
                                 lotteryName,
@@ -269,7 +297,8 @@ const Dashboard = () => {
       <ClaimPrizeDialog
         open={claimDialog.open}
         onClose={() => setClaimDialog(prev => ({ ...prev, open: false }))}
-        onSuccess={() => updateClaimStatus(claimDialog.poolId)}
+        onSuccess={() => updateClaimStatus(claimDialog.purchaseId)}
+        purchaseId={claimDialog.purchaseId}
         poolId={claimDialog.poolId}
         poolTitle={claimDialog.poolTitle}
         lotteryName={claimDialog.lotteryName}

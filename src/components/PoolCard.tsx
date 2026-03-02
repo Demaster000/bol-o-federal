@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Calendar, Users, Trophy } from 'lucide-react';
+import { Calendar, Trophy, TrendingUp } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 
 interface PoolCardProps {
@@ -37,16 +37,13 @@ const PoolCard = ({ pool, onBuy }: PoolCardProps) => {
       className="group relative overflow-hidden rounded-xl border border-border bg-card transition-all hover:shadow-glow w-full"
     >
       <div className="flex flex-col sm:flex-row">
-        {/* Header com gradient */}
         <div className={`bg-gradient-to-r ${gradient} px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0 w-full sm:w-48 flex items-center`}>
           <span className="font-display text-xs sm:text-sm font-bold uppercase tracking-wider text-primary-foreground/90">
             {lotteryName}
           </span>
         </div>
 
-        {/* Conteúdo principal */}
         <div className="flex-1 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
-          {/* Informações do bolão */}
           <div className="flex-1 space-y-2 sm:space-y-3">
             <div>
               <h3 className="font-display text-base sm:text-lg font-bold text-foreground">{pool.title}</h3>
@@ -55,7 +52,6 @@ const PoolCard = ({ pool, onBuy }: PoolCardProps) => {
               )}
             </div>
 
-            {/* Prêmio e informações */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
               {prizeAmount > 0 && (
                 <div className="rounded-lg bg-muted/50 p-2 sm:p-3">
@@ -66,19 +62,18 @@ const PoolCard = ({ pool, onBuy }: PoolCardProps) => {
                   <p className="font-display font-bold text-foreground text-xs sm:text-sm">
                     R$ {prizeAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
-                  {estimatedPerQuota > 0 && (
-                    <p className="text-xs text-primary font-semibold">
-                      ≈ R$ {estimatedPerQuota.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/cota
-                    </p>
-                  )}
                 </div>
               )}
               <div className="rounded-lg bg-muted/50 p-2 sm:p-3">
                 <div className="flex items-center gap-1 text-muted-foreground mb-1">
-                  <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                  <span>Vendidas</span>
+                  <TrendingUp className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                  <span>Est. por cota</span>
                 </div>
-                <p className="font-display font-bold text-foreground">{soldQuotas}</p>
+                <p className="font-display font-bold text-primary text-xs sm:text-sm">
+                  {estimatedPerQuota > 0
+                    ? `R$ ${estimatedPerQuota.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                    : '—'}
+                </p>
               </div>
               <div className="rounded-lg bg-muted/50 p-2 sm:p-3">
                 <div className="flex items-center gap-1 text-muted-foreground mb-1">
@@ -94,7 +89,6 @@ const PoolCard = ({ pool, onBuy }: PoolCardProps) => {
             </div>
           </div>
 
-          {/* Preço e botão */}
           <div className="flex items-end justify-between sm:flex-col gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 sm:border-l border-border sm:pl-6 flex-shrink-0">
             <div>
               <span className="text-xs text-muted-foreground">Valor por cota</span>
