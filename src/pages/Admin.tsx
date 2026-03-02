@@ -377,73 +377,75 @@ const Admin = () => {
 
       {/* Create Pool Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="bg-card border-border max-w-lg">
+        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">Criar Novo Bolão</DialogTitle>
             <DialogDescription className="text-muted-foreground">Preencha os dados para criar um novo bolão.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>Modalidade *</Label>
-              <Select value={form.lottery_type_id} onValueChange={(v) => setForm({ ...form, lottery_type_id: v })}>
-                <SelectTrigger className="bg-muted">
-                  <SelectValue placeholder="Selecione a modalidade" />
-                </SelectTrigger>
-                <SelectContent>
-                  {lotteryTypes.filter(lt => lt.active).map((lt) => (
-                    <SelectItem key={lt.id} value={lt.id}>{lt.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Título *</Label>
-              <Input className="bg-muted" placeholder="Ex: Mega-Sena Concurso 2700" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label>Descrição</Label>
-              <Textarea className="bg-muted" placeholder="Detalhes do bolão..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="flex-1 overflow-y-auto pr-4">
+            <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label>Valor por cota (R$) *</Label>
-                <Input className="bg-muted" type="number" step="0.01" min="0.01" placeholder="10.00" value={form.price_per_quota} onChange={(e) => setForm({ ...form, price_per_quota: e.target.value })} />
+                <Label>Modalidade *</Label>
+                <Select value={form.lottery_type_id} onValueChange={(v) => setForm({ ...form, lottery_type_id: v })}>
+                  <SelectTrigger className="bg-muted">
+                    <SelectValue placeholder="Selecione a modalidade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {lotteryTypes.filter(lt => lt.active).map((lt) => (
+                      <SelectItem key={lt.id} value={lt.id}>{lt.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label>Prêmio estimado (R$) *</Label>
-                <Input className="bg-muted" type="number" step="0.01" min="0" placeholder="130000000" value={form.prize_amount} onChange={(e) => setForm({ ...form, prize_amount: e.target.value })} />
+                <Label>Título *</Label>
+                <Input className="bg-muted" placeholder="Ex: Mega-Sena Concurso 2700" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Data do sorteio</Label>
-              <Input className="bg-muted" type="datetime-local" value={form.draw_date} onChange={(e) => setForm({ ...form, draw_date: e.target.value })} />
-            </div>
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Textarea className="bg-muted" placeholder="Detalhes do bolão..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Valor por cota (R$) *</Label>
+                  <Input className="bg-muted" type="number" step="0.01" min="0.01" placeholder="10.00" value={form.price_per_quota} onChange={(e) => setForm({ ...form, price_per_quota: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Prêmio estimado (R$) *</Label>
+                  <Input className="bg-muted" type="number" step="0.01" min="0" placeholder="130000000" value={form.prize_amount} onChange={(e) => setForm({ ...form, prize_amount: e.target.value })} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Data do sorteio</Label>
+                <Input className="bg-muted" type="datetime-local" value={form.draw_date} onChange={(e) => setForm({ ...form, draw_date: e.target.value })} />
+              </div>
 
-            <div className="flex items-center justify-between rounded-lg border border-border p-3 bg-muted/30">
-              <div className="space-y-0.5">
-                <Label>Cotas Ilimitadas</Label>
-                <p className="text-xs text-muted-foreground">Permite vendas sem limite de estoque.</p>
-              </div>
-              <Switch 
-                checked={form.unlimited_quotas} 
-                onCheckedChange={(v) => setForm({ ...form, unlimited_quotas: v })} 
-              />
-            </div>
-
-            {!form.unlimited_quotas && (
-              <div className="space-y-2">
-                <Label>Total de Cotas *</Label>
-                <Input 
-                  className="bg-muted" 
-                  type="number" 
-                  placeholder="100" 
-                  value={form.total_quotas} 
-                  onChange={(e) => setForm({ ...form, total_quotas: e.target.value })} 
+              <div className="flex items-center justify-between rounded-lg border border-border p-3 bg-muted/30">
+                <div className="space-y-0.5">
+                  <Label>Cotas Ilimitadas</Label>
+                  <p className="text-xs text-muted-foreground">Permite vendas sem limite de estoque.</p>
+                </div>
+                <Switch 
+                  checked={form.unlimited_quotas} 
+                  onCheckedChange={(v) => setForm({ ...form, unlimited_quotas: v })} 
                 />
               </div>
-            )}
+
+              {!form.unlimited_quotas && (
+                <div className="space-y-2">
+                  <Label>Total de Cotas *</Label>
+                  <Input 
+                    className="bg-muted" 
+                    type="number" 
+                    placeholder="100" 
+                    value={form.total_quotas} 
+                    onChange={(e) => setForm({ ...form, total_quotas: e.target.value })} 
+                  />
+                </div>
+              )}
+            </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-6 border-t border-border pt-4">
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
             <Button onClick={handleCreatePool} disabled={formLoading} className="bg-gradient-green hover:opacity-90 text-primary-foreground">
               {formLoading ? 'Criando...' : 'Criar Bolão'}
@@ -454,25 +456,27 @@ const Admin = () => {
 
       {/* Result Dialog */}
       <Dialog open={resultOpen} onOpenChange={setResultOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">Publicar Resultado</DialogTitle>
             <DialogDescription className="text-muted-foreground">
               Informe os números sorteados para o bolão: {selectedPool?.title}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>Números sorteados *</Label>
-              <Input className="bg-muted" placeholder="Ex: 05 - 12 - 23 - 34 - 45 - 56" value={resultText} onChange={(e) => setResultText(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Prêmio (R$)</Label>
-              <Input className="bg-muted" type="number" step="0.01" placeholder={selectedPool?.prize_amount ? String(selectedPool.prize_amount) : '0.00'} value={prizeAmount} onChange={(e) => setPrizeAmount(e.target.value)} />
-              <p className="text-xs text-muted-foreground">Deixe em branco para manter o valor atual.</p>
+          <div className="flex-1 overflow-y-auto pr-4">
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label>Números sorteados *</Label>
+                <Input className="bg-muted" placeholder="Ex: 05 - 12 - 23 - 34 - 45 - 56" value={resultText} onChange={(e) => setResultText(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Prêmio (R$)</Label>
+                <Input className="bg-muted" type="number" step="0.01" placeholder={selectedPool?.prize_amount ? String(selectedPool.prize_amount) : '0.00'} value={prizeAmount} onChange={(e) => setPrizeAmount(e.target.value)} />
+                <p className="text-xs text-muted-foreground">Deixe em branco para manter o valor atual.</p>
+              </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-6 border-t border-border pt-4">
             <Button variant="outline" onClick={() => setResultOpen(false)}>Cancelar</Button>
             <Button onClick={handlePublishResult} disabled={formLoading} className="bg-gradient-gold text-secondary-foreground hover:opacity-90">
               {formLoading ? 'Publicando...' : 'Publicar Resultado'}
