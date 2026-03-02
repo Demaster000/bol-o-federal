@@ -209,7 +209,7 @@ const Admin = () => {
             <TabsTrigger value="pools">Bolões</TabsTrigger>
             <TabsTrigger value="claims"><DollarSign className="mr-1 h-3.5 w-3.5" /> Pagamentos</TabsTrigger>
             <TabsTrigger value="lotteries">Modalidades</TabsTrigger>
-            <TabsTrigger value="pix-settings">PIX / EFI</TabsTrigger>
+            <TabsTrigger value="pix-settings">PIX / Mercado Pago</TabsTrigger>
           </TabsList>
 
           <TabsContent value="pools">
@@ -295,28 +295,16 @@ const Admin = () => {
           <TabsContent value="pix-settings">
             <div className="rounded-xl border border-border bg-card p-6 space-y-6">
               <div>
-                <h3 className="font-display text-lg font-bold text-foreground mb-2">Integração EFI Bank (PIX)</h3>
+                <h3 className="font-display text-lg font-bold text-foreground mb-2">Integração Mercado Pago (PIX)</h3>
                 <p className="text-sm text-muted-foreground">
-                  As credenciais da API EFI Bank estão configuradas como variáveis de ambiente seguras no backend.
+                  O Access Token do Mercado Pago está configurado como variável de ambiente segura no backend.
                 </p>
               </div>
 
               <div className="space-y-3">
                 <div className="rounded-lg bg-muted p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-foreground font-medium">EFI_CLIENT_ID</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">Configurado</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-foreground font-medium">EFI_CLIENT_SECRET</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">Configurado</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-foreground font-medium">EFI_CERTIFICATE_BASE64</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">Configurado</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-foreground font-medium">EFI_PIX_KEY</span>
+                    <span className="text-sm text-foreground font-medium">MP_ACCESS_TOKEN</span>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">Configurado</span>
                   </div>
                 </div>
@@ -325,21 +313,25 @@ const Admin = () => {
               <div className="rounded-lg border border-border p-4 space-y-2">
                 <h4 className="font-semibold text-foreground text-sm">Como funciona</h4>
                 <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4">
-                  <li>Ao comprar cotas, o usuário recebe um QR Code PIX gerado pela API da EFI.</li>
+                  <li>Ao comprar cotas, o usuário recebe um QR Code PIX gerado pela API do Mercado Pago.</li>
                   <li>O QR Code é válido por 30 minutos.</li>
-                  <li>Após o pagamento, um webhook da EFI confirma a transação automaticamente.</li>
+                  <li>O sistema consulta o Mercado Pago a cada 5 segundos para confirmar o pagamento.</li>
+                  <li>Opcionalmente, o webhook do Mercado Pago também confirma automaticamente.</li>
                   <li>A compra só é registrada após a confirmação do pagamento.</li>
                 </ul>
               </div>
 
               <div className="rounded-lg border border-primary/30 bg-primary/10 p-4">
-                <h4 className="font-semibold text-foreground text-sm mb-2">⚠️ Webhook</h4>
+                <h4 className="font-semibold text-foreground text-sm mb-2">⚠️ Webhook (Opcional)</h4>
                 <p className="text-xs text-muted-foreground">
-                  Configure o webhook na sua conta EFI para apontar para:
+                  Configure a URL de notificação IPN no painel do Mercado Pago:
                 </p>
                 <code className="text-xs text-primary mt-1 block break-all">
                   {`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID ?? 'seu-projeto'}.supabase.co/functions/v1/pix-webhook`}
                 </code>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Mesmo sem o webhook, o polling do frontend confirma o pagamento automaticamente.
+                </p>
               </div>
             </div>
           </TabsContent>
