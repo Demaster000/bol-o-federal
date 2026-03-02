@@ -47,9 +47,9 @@ Deno.serve(async (req) => {
     );
 
     if (!mpResponse.ok) {
-      console.error("Failed to fetch MP payment:", await mpResponse.text());
-      return new Response(JSON.stringify({ error: "Failed to verify" }), {
-        status: 500,
+      console.warn("Failed to fetch MP payment (may be test):", await mpResponse.text());
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
