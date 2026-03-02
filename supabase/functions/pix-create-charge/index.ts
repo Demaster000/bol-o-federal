@@ -6,43 +6,12 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-async function getEfiToken(): Promise<string> {
-  const clientId = Deno.env.get("EFI_CLIENT_ID");
-  const clientSecret = Deno.env.get("EFI_CLIENT_SECRET");
-  const certBase64 = Deno.env.get("EFI_CERTIFICATE_BASE64");
-
-  if (!clientId || !clientSecret || !certBase64) {
-    throw new Error("EFI credentials not configured");
-  }
-
-  const credentials = btoa(`${clientId}:${clientSecret}`);
-
-  // EFI API uses OAuth2 client_credentials
-  const response = await fetch("https://pix.api.efipay.com.br/oauth/token", {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${credentials}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ grant_type: "client_credentials" }),
-  });
-
-  if (!response.ok) {
-    const errBody = await response.text();
-    throw new Error(`EFI auth failed [${response.status}]: ${errBody}`);
-  }
-
-  const data = await response.json();
-  return data.access_token;
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Validate user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -54,7 +23,16 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const mpAccessToken = Deno.env.get("MP_ACCESS_TOKEN");
 
+    if (!mpAccessToken) {
+      return new Response(
+        JSON.stringify({ error: "Mercado Pago não configurado" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate user
     const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -70,15 +48,13 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub as string;
+    const userEmail = (claimsData.claims.email as string) || "user@example.com";
 
     const { pool_id, quantity } = await req.json();
     if (!pool_id || !quantity || quantity < 1) {
       return new Response(
         JSON.stringify({ error: "pool_id and quantity required" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -100,75 +76,49 @@ Deno.serve(async (req) => {
     if (pool.status !== "open") {
       return new Response(
         JSON.stringify({ error: "Pool is not open for purchases" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const totalAmount = quantity * pool.price_per_quota;
 
-    // Get EFI token
-    const efiToken = await getEfiToken();
-
-    // Create PIX charge via EFI
-    const txid = crypto.randomUUID().replace(/-/g, "").substring(0, 26);
-
-    const chargeResponse = await fetch(
-      `https://pix.api.efipay.com.br/v2/cob/${txid}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${efiToken}`,
-          "Content-Type": "application/json",
+    // Create PIX payment via Mercado Pago
+    const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${mpAccessToken}`,
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": crypto.randomUUID(),
+      },
+      body: JSON.stringify({
+        transaction_amount: parseFloat(totalAmount.toFixed(2)),
+        description: `${pool.title} - ${quantity} cota(s)`,
+        payment_method_id: "pix",
+        payer: {
+          email: userEmail,
         },
-        body: JSON.stringify({
-          calendario: { expiracao: 1800 }, // 30 minutes
-          valor: {
-            original: totalAmount.toFixed(2),
-          },
-          chave: Deno.env.get("EFI_PIX_KEY") || "", // PIX key configured in EFI
-          infoAdicionais: [
-            { nome: "Pool", valor: pool.title },
-            { nome: "Cotas", valor: String(quantity) },
-          ],
-        }),
-      }
-    );
+      }),
+    });
 
-    if (!chargeResponse.ok) {
-      const errBody = await chargeResponse.text();
-      console.error("EFI charge error:", errBody);
+    if (!mpResponse.ok) {
+      const errBody = await mpResponse.text();
+      console.error("Mercado Pago error:", errBody);
       return new Response(
-        JSON.stringify({ error: "Failed to create PIX charge", details: errBody }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: "Falha ao criar cobrança PIX", details: errBody }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const charge = await chargeResponse.json();
+    const mpPayment = await mpResponse.json();
 
-    // Generate QR Code
-    const locId = charge.loc?.id;
-    let qrCode = "";
-    let qrCodeImage = "";
-
-    if (locId) {
-      const qrResponse = await fetch(
-        `https://pix.api.efipay.com.br/v2/loc/${locId}/qrcode`,
-        {
-          headers: { Authorization: `Bearer ${efiToken}` },
-        }
-      );
-      if (qrResponse.ok) {
-        const qrData = await qrResponse.json();
-        qrCode = qrData.qrcode || "";
-        qrCodeImage = qrData.imagemQrcode || "";
-      }
-    }
+    const qrCode =
+      mpPayment.point_of_interaction?.transaction_data?.qr_code || "";
+    const qrCodeBase64 =
+      mpPayment.point_of_interaction?.transaction_data?.qr_code_base64 || "";
+    const qrCodeImage = qrCodeBase64
+      ? `data:image/png;base64,${qrCodeBase64}`
+      : "";
+    const mpPaymentId = String(mpPayment.id);
 
     // Save pix_payment record
     const { data: pixPayment, error: insertError } = await supabaseAdmin
@@ -178,11 +128,10 @@ Deno.serve(async (req) => {
         pool_id,
         quantity,
         total_amount: totalAmount,
-        txid,
-        loc_id: locId ? String(locId) : null,
+        txid: mpPaymentId,
+        efi_charge_id: mpPaymentId,
         qr_code: qrCode,
         qr_code_image: qrCodeImage,
-        efi_charge_id: charge.txid || txid,
         status: "pending",
       })
       .select()
@@ -192,10 +141,7 @@ Deno.serve(async (req) => {
       console.error("Insert pix_payment error:", insertError);
       return new Response(
         JSON.stringify({ error: "Failed to save payment record" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -204,14 +150,11 @@ Deno.serve(async (req) => {
         payment_id: pixPayment.id,
         qr_code: qrCode,
         qr_code_image: qrCodeImage,
-        txid,
+        txid: mpPaymentId,
         total_amount: totalAmount,
         expires_at: pixPayment.expires_at,
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error creating PIX charge:", error);
