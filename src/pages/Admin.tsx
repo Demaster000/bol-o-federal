@@ -40,6 +40,8 @@ const Admin = () => {
     price_per_quota: '',
     prize_amount: '',
     draw_date: '',
+    unlimited_quotas: false,
+    total_quotas: '100',
   });
   const [resultText, setResultText] = useState('');
   const [prizeAmount, setPrizeAmount] = useState('');
@@ -68,6 +70,8 @@ const Admin = () => {
     }
     const priceVal = parseFloat(form.price_per_quota);
     const prizeVal = parseFloat(form.prize_amount);
+    const totalQuotasVal = parseInt(form.total_quotas);
+
     if (isNaN(priceVal) || priceVal <= 0) {
       toast({ title: 'Erro', description: 'Valor por cota inválido.', variant: 'destructive' });
       return;
@@ -76,6 +80,11 @@ const Admin = () => {
       toast({ title: 'Erro', description: 'Prêmio estimado inválido.', variant: 'destructive' });
       return;
     }
+    if (!form.unlimited_quotas && (isNaN(totalQuotasVal) || totalQuotasVal <= 0)) {
+      toast({ title: 'Erro', description: 'Total de cotas inválido.', variant: 'destructive' });
+      return;
+    }
+
     setFormLoading(true);
     const { error } = await supabase.from('pools').insert({
       lottery_type_id: form.lottery_type_id,
@@ -84,6 +93,8 @@ const Admin = () => {
       price_per_quota: priceVal,
       prize_amount: prizeVal,
       draw_date: form.draw_date || null,
+      unlimited_quotas: form.unlimited_quotas,
+      total_quotas: form.unlimited_quotas ? 999999 : totalQuotasVal,
     });
     setFormLoading(false);
     if (error) {
@@ -407,6 +418,30 @@ const Admin = () => {
               <Label>Data do sorteio</Label>
               <Input className="bg-muted" type="datetime-local" value={form.draw_date} onChange={(e) => setForm({ ...form, draw_date: e.target.value })} />
             </div>
+
+            <div className="flex items-center justify-between rounded-lg border border-border p-3 bg-muted/30">
+              <div className="space-y-0.5">
+                <Label>Cotas Ilimitadas</Label>
+                <p className="text-xs text-muted-foreground">Permite vendas sem limite de estoque.</p>
+              </div>
+              <Switch 
+                checked={form.unlimited_quotas} 
+                onCheckedChange={(v) => setForm({ ...form, unlimited_quotas: v })} 
+              />
+            </div>
+
+            {!form.unlimited_quotas && (
+              <div className="space-y-2">
+                <Label>Total de Cotas *</Label>
+                <Input 
+                  className="bg-muted" 
+                  type="number" 
+                  placeholder="100" 
+                  value={form.total_quotas} 
+                  onChange={(e) => setForm({ ...form, total_quotas: e.target.value })} 
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>

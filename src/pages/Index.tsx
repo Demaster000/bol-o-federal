@@ -15,6 +15,7 @@ type PoolWithType = Tables<'pools'> & { lottery_types: Tables<'lottery_types'> |
 const Index = () => {
   const { user } = useAuth();
   const [pools, setPools] = useState<PoolWithType[]>([]);
+  const [recentWinnings, setRecentWinnings] = useState<PoolWithType[]>([]);
   const [selectedPool, setSelectedPool] = useState<PoolWithType | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -25,6 +26,16 @@ const Index = () => {
       .eq('status', 'open')
       .order('created_at', { ascending: false });
     if (data) setPools(data as PoolWithType[]);
+
+    const { data: winnings } = await supabase
+      .from('pools')
+      .select('*, lottery_types(*)')
+      .in('status', ['drawn', 'paid'])
+      .not('prize_amount', 'is', null)
+      .gt('prize_amount', 0)
+      .order('updated_at', { ascending: false })
+      .limit(3);
+    if (winnings) setRecentWinnings(winnings as PoolWithType[]);
   };
 
   useEffect(() => { fetchPools(); }, []);
@@ -119,6 +130,51 @@ const Index = () => {
           ))}
         </div>
       </section>
+
+      {/* Social Proof - Recent Winnings */}
+      {recentWinnings.length > 0 && (
+        <section className="bg-muted/30 py-16 border-y border-border">
+          <div className="container mx-auto px-4">
+            <div className="mb-10 text-center">
+              <h2 className="font-display text-3xl font-bold text-foreground">
+                Últimos <span className="text-gradient-gold">Ganhos</span>
+              </h2>
+              <p className="mt-2 text-muted-foreground">Confira os prêmios distribuídos nos últimos bolões</p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-3">
+              {recentWinnings.map((winning, i) => (
+                <motion.div
+                  key={winning.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="rounded-2xl border border-primary/20 bg-card p-6 shadow-lg relative overflow-hidden group"
+                >
+                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <Trophy className="h-16 w-16 text-primary" />
+                  </div>
+                  <div className="relative z-10">
+                    <div className="mb-4 inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary uppercase tracking-wider">
+                      {winning.lottery_types?.name}
+                    </div>
+                    <h3 className="font-display text-lg font-bold text-foreground mb-1">{winning.title}</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Sorteio em {winning.draw_date ? new Date(winning.draw_date).toLocaleDateString('pt-BR') : '—'}
+                    </p>
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <span className="text-xs text-muted-foreground block mb-1">Prêmio Total</span>
+                      <p className="font-display text-2xl font-bold text-gradient-gold">
+                        R$ {Number(winning.prize_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Available Pools */}
       <section className="container mx-auto px-4 py-16">

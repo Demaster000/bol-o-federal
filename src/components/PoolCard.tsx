@@ -25,10 +25,14 @@ const PoolCard = ({ pool, onBuy }: PoolCardProps) => {
   const lotteryName = pool.lottery_types?.name ?? '';
   const gradient = LOTTERY_COLORS[lotteryName] || 'from-primary to-primary/80';
   const soldQuotas = pool.sold_quotas ?? 0;
+  const totalQuotas = pool.total_quotas ?? 0;
+  const isUnlimited = pool.unlimited_quotas ?? false;
+  const isSoldOut = !isUnlimited && soldQuotas >= totalQuotas;
+  
   const prizeAmount = pool.prize_amount ? Number(pool.prize_amount) : 0;
   const netPrize = prizeAmount * 0.9;
   const estimatedPerQuota = soldQuotas > 0 && netPrize > 0 ? netPrize / soldQuotas : 0;
-  const isClosed = pool.status !== 'open';
+  const isClosed = pool.status !== 'open' || isSoldOut;
 
   return (
     <motion.div
@@ -37,16 +41,28 @@ const PoolCard = ({ pool, onBuy }: PoolCardProps) => {
       className="group relative overflow-hidden rounded-xl border border-border bg-card transition-all hover:shadow-glow w-full"
     >
       <div className="flex flex-col sm:flex-row">
-        <div className={`bg-gradient-to-r ${gradient} px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0 w-full sm:w-48 flex items-center`}>
+        <div className={`bg-gradient-to-r ${gradient} px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0 w-full sm:w-48 flex flex-col justify-center items-start sm:items-center gap-1`}>
           <span className="font-display text-xs sm:text-sm font-bold uppercase tracking-wider text-primary-foreground/90">
             {lotteryName}
           </span>
+          {isUnlimited && (
+            <span className="bg-white/20 text-[10px] px-2 py-0.5 rounded-full text-white font-bold animate-pulse">
+              ILIMITADO
+            </span>
+          )}
         </div>
 
         <div className="flex-1 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
           <div className="flex-1 space-y-2 sm:space-y-3">
-            <div>
-              <h3 className="font-display text-base sm:text-lg font-bold text-foreground">{pool.title}</h3>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-display text-base sm:text-lg font-bold text-foreground">{pool.title}</h3>
+                {isUnlimited && (
+                  <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded border border-primary/20">
+                    MAIS CHANCES DE GANHARMOS
+                  </span>
+                )}
+              </div>
               {pool.description && (
                 <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">{pool.description}</p>
               )}
@@ -101,7 +117,7 @@ const PoolCard = ({ pool, onBuy }: PoolCardProps) => {
               disabled={isClosed}
               className={`w-full sm:w-auto text-xs sm:text-sm ${isClosed ? '' : `bg-gradient-to-r ${gradient} hover:opacity-90 text-primary-foreground`}`}
             >
-              {isClosed ? (pool.status === 'drawn' ? 'Encerrado' : 'Fechado') : 'Comprar Cota'}
+              {isSoldOut ? 'ESGOTADO' : (isClosed ? (pool.status === 'drawn' ? 'Encerrado' : 'Fechado') : 'Comprar Cota')}
             </Button>
           </div>
         </div>

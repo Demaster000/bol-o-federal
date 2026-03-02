@@ -168,6 +168,7 @@ const Dashboard = () => {
               const gradient = LOTTERY_COLORS[lotteryName] || 'from-primary to-primary/80';
               const isDrawn = p.pools?.status === 'drawn' || p.pools?.status === 'paid';
               const isOpen = p.pools?.status === 'open';
+              const isUnlimited = p.pools?.unlimited_quotas ?? false;
               const prizeForUser = calcPrizePerQuota(p.pools, p.quantity);
               const estimatePerQuota = calcEstimatePerQuota(p.pools);
               const alreadyClaimed = claimedPurchases.has(p.id);
@@ -182,15 +183,29 @@ const Dashboard = () => {
                   className="rounded-xl border border-border bg-card overflow-hidden"
                 >
                   <div className={`bg-gradient-to-r ${gradient} px-4 py-2 flex items-center justify-between`}>
-                    <span className="text-xs font-bold uppercase tracking-wider text-primary-foreground/90">
-                      {lotteryName}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-primary-foreground/90">
+                        {lotteryName}
+                      </span>
+                      {isUnlimited && (
+                        <span className="bg-white/20 text-[10px] px-2 py-0.5 rounded-full text-white font-bold">
+                          ILIMITADO
+                        </span>
+                      )}
+                    </div>
                     <span className="text-xs bg-background/20 px-2 py-0.5 rounded-full text-primary-foreground/80">
                       {statusLabel[p.pools?.status ?? 'open']}
                     </span>
                   </div>
                   <div className="p-4 space-y-3">
-                    <h3 className="font-display font-bold text-foreground">{p.pools?.title}</h3>
+                    <div className="flex flex-col gap-1">
+                      <h3 className="font-display font-bold text-foreground">{p.pools?.title}</h3>
+                      {isUnlimited && isOpen && (
+                        <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded border border-primary/20 w-fit">
+                          MAIS CHANCES DE GANHARMOS
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center justify-between text-sm text-muted-foreground">
                       <span className="flex items-center gap-1.5">
                         <Ticket className="h-3.5 w-3.5" />
