@@ -308,6 +308,7 @@ const Admin = () => {
             <TabsTrigger value="claims"><DollarSign className="mr-1 h-3.5 w-3.5" /> Pagamentos</TabsTrigger>
             <TabsTrigger value="lotteries">Modalidades</TabsTrigger>
             <TabsTrigger value="pix-settings">PIX / Mercado Pago</TabsTrigger>
+            <TabsTrigger value="whatsapp"><MessageSquare className="mr-1 h-3.5 w-3.5" /> WhatsApp</TabsTrigger>
           </TabsList>
 
           <TabsContent value="pools">
