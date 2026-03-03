@@ -445,6 +445,10 @@ const Admin = () => {
               </div>
             </div>
           </TabsContent>
+
+          <TabsContent value="whatsapp">
+            <AdminWhatsApp />
+          </TabsContent>
         </Tabs>
       </div>
 
