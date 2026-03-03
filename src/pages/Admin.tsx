@@ -13,8 +13,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trophy, Users, Ticket, Eye, DollarSign, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trophy, Users, Ticket, Eye, DollarSign, Trash2, MessageSquare } from 'lucide-react';
 import AdminClaims from '@/components/AdminClaims';
+import AdminWhatsApp from '@/components/AdminWhatsApp';
 import { Navigate } from 'react-router-dom';
 
 type PoolWithType = Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
@@ -104,6 +105,16 @@ const Admin = () => {
       toast({ title: 'Erro', description: `Não foi possível criar o bolão: ${error.message}`, variant: 'destructive' });
     } else {
       toast({ title: 'Bolão criado!' });
+      // Trigger WhatsApp notification for new pool
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        const token = session?.session?.access_token;
+        fetch(`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/whatsapp-send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ type: 'new_pool', data: { title: form.title, price: parseFloat(form.price_per_quota), prize: parseFloat(form.prize_amount), draw_date: form.draw_date } }),
+        }).catch(console.error);
+      } catch {}
       setCreateOpen(false);
       setForm({ lottery_type_id: '', title: '', description: '', price_per_quota: '', prize_amount: '', draw_date: '', unlimited_quotas: false, total_quotas: '100' });
       fetchData();
@@ -225,6 +236,16 @@ const Admin = () => {
       toast({ title: 'Erro', description: `Falha ao publicar resultado: ${error.message}`, variant: 'destructive' });
     } else {
       toast({ title: 'Resultado publicado e usuários notificados!' });
+      // Trigger WhatsApp notification for result
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        const token = session?.session?.access_token;
+        fetch(`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/whatsapp-send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ type: 'result', data: { title: selectedPool.title, numbers: resultText.trim(), prize: prizeAmount || selectedPool.prize_amount } }),
+        }).catch(console.error);
+      } catch {}
       setResultOpen(false);
       setResultText('');
       setPrizeAmount('');
@@ -307,6 +328,7 @@ const Admin = () => {
             <TabsTrigger value="claims"><DollarSign className="mr-1 h-3.5 w-3.5" /> Pagamentos</TabsTrigger>
             <TabsTrigger value="lotteries">Modalidades</TabsTrigger>
             <TabsTrigger value="pix-settings">PIX / Mercado Pago</TabsTrigger>
+            <TabsTrigger value="whatsapp"><MessageSquare className="mr-1 h-3.5 w-3.5" /> WhatsApp</TabsTrigger>
           </TabsList>
 
           <TabsContent value="pools">
@@ -442,6 +464,10 @@ const Admin = () => {
                 </p>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="whatsapp">
+            <AdminWhatsApp />
           </TabsContent>
         </Tabs>
       </div>
