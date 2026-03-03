@@ -334,6 +334,51 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_settings: {
+        Row: {
+          api_key: string | null
+          api_url: string | null
+          broadcast_interval_minutes: number | null
+          broadcast_open_pools: boolean | null
+          created_at: string | null
+          enabled: boolean | null
+          group_id: string | null
+          id: string
+          instance_name: string | null
+          notify_new_pool: boolean | null
+          notify_result: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          api_url?: string | null
+          broadcast_interval_minutes?: number | null
+          broadcast_open_pools?: boolean | null
+          created_at?: string | null
+          enabled?: boolean | null
+          group_id?: string | null
+          id?: string
+          instance_name?: string | null
+          notify_new_pool?: boolean | null
+          notify_result?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          api_url?: string | null
+          broadcast_interval_minutes?: number | null
+          broadcast_open_pools?: boolean | null
+          created_at?: string | null
+          enabled?: boolean | null
+          group_id?: string | null
+          id?: string
+          instance_name?: string | null
+          notify_new_pool?: boolean | null
+          notify_result?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
