@@ -105,6 +105,16 @@ const Admin = () => {
       toast({ title: 'Erro', description: `Não foi possível criar o bolão: ${error.message}`, variant: 'destructive' });
     } else {
       toast({ title: 'Bolão criado!' });
+      // Trigger WhatsApp notification for new pool
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        const token = session?.session?.access_token;
+        fetch(`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/whatsapp-send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ type: 'new_pool', data: { title: form.title, price: parseFloat(form.price_per_quota), prize: parseFloat(form.prize_amount), draw_date: form.draw_date } }),
+        }).catch(console.error);
+      } catch {}
       setCreateOpen(false);
       setForm({ lottery_type_id: '', title: '', description: '', price_per_quota: '', prize_amount: '', draw_date: '', unlimited_quotas: false, total_quotas: '100' });
       fetchData();
