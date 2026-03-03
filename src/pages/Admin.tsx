@@ -27,6 +27,8 @@ const Admin = () => {
   const [lotteryTypes, setLotteryTypes] = useState<Tables<'lottery_types'>[]>([]);
   const [pools, setPools] = useState<PoolWithType[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [resultOpen, setResultOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedPool, setSelectedPool] = useState<PoolWithType | null>(null);
@@ -103,9 +105,75 @@ const Admin = () => {
     } else {
       toast({ title: 'Bolão criado!' });
       setCreateOpen(false);
-      setForm({ lottery_type_id: '', title: '', description: '', price_per_quota: '', prize_amount: '', draw_date: '' });
+      setForm({ lottery_type_id: '', title: '', description: '', price_per_quota: '', prize_amount: '', draw_date: '', unlimited_quotas: false, total_quotas: '100' });
       fetchData();
     }
+  };
+
+  const resetForm = () => {
+    setForm({ lottery_type_id: '', title: '', description: '', price_per_quota: '', prize_amount: '', draw_date: '', unlimited_quotas: false, total_quotas: '100' });
+    setIsEditing(false);
+  };
+
+  const handleEditPool = async () => {
+    if (!selectedPool || !form.title || !form.price_per_quota || !form.prize_amount) {
+      toast({ title: 'Erro', description: 'Preencha todos os campos obrigatórios.', variant: 'destructive' });
+      return;
+    }
+    const priceVal = parseFloat(form.price_per_quota);
+    const prizeVal = parseFloat(form.prize_amount);
+    const totalQuotasVal = parseInt(form.total_quotas);
+
+    if (isNaN(priceVal) || priceVal <= 0) {
+      toast({ title: 'Erro', description: 'Valor por cota inválido.', variant: 'destructive' });
+      return;
+    }
+    if (isNaN(prizeVal) || prizeVal < 0) {
+      toast({ title: 'Erro', description: 'Prêmio estimado inválido.', variant: 'destructive' });
+      return;
+    }
+    if (!form.unlimited_quotas && (isNaN(totalQuotasVal) || totalQuotasVal <= 0)) {
+      toast({ title: 'Erro', description: 'Total de cotas inválido.', variant: 'destructive' });
+      return;
+    }
+
+    setFormLoading(true);
+    const { error } = await supabase.from('pools').update({
+      title: form.title,
+      description: form.description || null,
+      price_per_quota: priceVal,
+      prize_amount: prizeVal,
+      draw_date: form.draw_date || null,
+      unlimited_quotas: form.unlimited_quotas,
+      total_quotas: form.unlimited_quotas ? 999999 : totalQuotasVal,
+    }).eq('id', selectedPool.id);
+    setFormLoading(false);
+
+    if (error) {
+      console.error('Edit pool error:', error);
+      toast({ title: 'Erro', description: `Não foi possível editar o bolão: ${error.message}`, variant: 'destructive' });
+    } else {
+      toast({ title: 'Bolão atualizado com sucesso!' });
+      setEditOpen(false);
+      resetForm();
+      fetchData();
+    }
+  };
+
+  const handleOpenEditDialog = (pool: PoolWithType) => {
+    setSelectedPool(pool);
+    setForm({
+      lottery_type_id: pool.lottery_type_id,
+      title: pool.title,
+      description: pool.description || '',
+      price_per_quota: String(pool.price_per_quota),
+      prize_amount: String(pool.prize_amount || ''),
+      draw_date: pool.draw_date || '',
+      unlimited_quotas: pool.unlimited_quotas || false,
+      total_quotas: String(pool.total_quotas || '100'),
+    });
+    setIsEditing(true);
+    setEditOpen(true);
   };
 
   const handlePublishResult = async () => {
@@ -267,6 +335,9 @@ const Admin = () => {
                   <div className="flex items-center gap-2 flex-wrap">
                     <Button variant="outline" size="sm" onClick={() => handleViewPurchases(pool)}>
                       <Eye className="mr-1 h-3.5 w-3.5" /> Detalhes
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleOpenEditDialog(pool)}>
+                      <Pencil className="mr-1 h-3.5 w-3.5" /> Editar
                     </Button>
                     {pool.status === 'open' && (
                       <Button variant="outline" size="sm" onClick={() => handleClosePool(pool)}>
@@ -532,6 +603,85 @@ const Admin = () => {
               </div>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Pool Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Editar Bolão</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Atualize os dados do bolão.</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto pr-4">
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label>Modalidade *</Label>
+                <Select value={form.lottery_type_id} onValueChange={(v) => setForm({ ...form, lottery_type_id: v })}>
+                  <SelectTrigger className="bg-muted">
+                    <SelectValue placeholder="Selecione a modalidade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {lotteryTypes.filter(lt => lt.active).map((lt) => (
+                      <SelectItem key={lt.id} value={lt.id}>{lt.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Título *</Label>
+                <Input className="bg-muted" placeholder="Ex: Mega-Sena Concurso 2700" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Textarea className="bg-muted" placeholder="Detalhes do bolão..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Valor por cota (R$) *</Label>
+                  <Input className="bg-muted" type="number" step="0.01" min="0.01" placeholder="10.00" value={form.price_per_quota} onChange={(e) => setForm({ ...form, price_per_quota: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Prêmio estimado (R$) *</Label>
+                  <Input className="bg-muted" type="number" step="0.01" min="0" placeholder="130000000" value={form.prize_amount} onChange={(e) => setForm({ ...form, prize_amount: e.target.value })} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Data do sorteio</Label>
+                <Input className="bg-muted" type="datetime-local" value={form.draw_date} onChange={(e) => setForm({ ...form, draw_date: e.target.value })} />
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border border-border p-3 bg-muted/30">
+                <div className="space-y-0.5">
+                  <Label>Cotas Ilimitadas</Label>
+                  <p className="text-xs text-muted-foreground">Permite vendas sem limite de estoque.</p>
+                </div>
+                <Switch 
+                  checked={form.unlimited_quotas} 
+                  onCheckedChange={(v) => setForm({ ...form, unlimited_quotas: v })} 
+                />
+              </div>
+
+              {!form.unlimited_quotas && (
+                <div className="space-y-2">
+                  <Label>Total de Cotas *</Label>
+                  <Input 
+                    className="bg-muted" 
+                    type="number" 
+                    placeholder="100" 
+                    value={form.total_quotas} 
+                    onChange={(e) => setForm({ ...form, total_quotas: e.target.value })} 
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="mt-6 border-t border-border pt-4">
+            <Button variant="outline" onClick={() => { setEditOpen(false); resetForm(); }}>Cancelar</Button>
+            <Button onClick={handleEditPool} disabled={formLoading} className="bg-gradient-green hover:opacity-90 text-primary-foreground">
+              {formLoading ? 'Atualizando...' : 'Atualizar Bolão'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

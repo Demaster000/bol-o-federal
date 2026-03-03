@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Calendar, Trophy, TrendingUp } from 'lucide-react';
+import { Calendar, Trophy, TrendingUp, Edit2 } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 
 interface PoolCardProps {
   pool: Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
   onBuy: (pool: Tables<'pools'>) => void;
+  onEdit?: (pool: Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null }) => void;
 }
 
 const LOTTERY_COLORS: Record<string, string> = {
@@ -21,7 +22,7 @@ const LOTTERY_COLORS: Record<string, string> = {
   'Federal': 'from-[#00838F] to-[#006570]',
 };
 
-const PoolCard = ({ pool, onBuy }: PoolCardProps) => {
+const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
   const lotteryName = pool.lottery_types?.name ?? '';
   const gradient = LOTTERY_COLORS[lotteryName] || 'from-primary to-primary/80';
   const soldQuotas = pool.sold_quotas ?? 0;
@@ -64,7 +65,7 @@ const PoolCard = ({ pool, onBuy }: PoolCardProps) => {
                 )}
               </div>
               {pool.description && (
-                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">{pool.description}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap break-words max-h-24 overflow-y-auto">{pool.description}</p>
               )}
             </div>
 
