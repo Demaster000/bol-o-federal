@@ -236,6 +236,16 @@ const Admin = () => {
       toast({ title: 'Erro', description: `Falha ao publicar resultado: ${error.message}`, variant: 'destructive' });
     } else {
       toast({ title: 'Resultado publicado e usuários notificados!' });
+      // Trigger WhatsApp notification for result
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        const token = session?.session?.access_token;
+        fetch(`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/whatsapp-send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ type: 'result', data: { title: selectedPool.title, numbers: resultText.trim(), prize: prizeAmount || selectedPool.prize_amount } }),
+        }).catch(console.error);
+      } catch {}
       setResultOpen(false);
       setResultText('');
       setPrizeAmount('');
