@@ -340,6 +340,7 @@ export type Database = {
           api_url: string | null
           broadcast_interval_minutes: number | null
           broadcast_open_pools: boolean | null
+          channel_id: string | null
           created_at: string | null
           enabled: boolean | null
           group_id: string | null
@@ -347,6 +348,7 @@ export type Database = {
           instance_name: string | null
           notify_new_pool: boolean | null
           notify_result: boolean | null
+          send_to_channel: boolean | null
           updated_at: string | null
         }
         Insert: {
@@ -354,6 +356,7 @@ export type Database = {
           api_url?: string | null
           broadcast_interval_minutes?: number | null
           broadcast_open_pools?: boolean | null
+          channel_id?: string | null
           created_at?: string | null
           enabled?: boolean | null
           group_id?: string | null
@@ -361,6 +364,7 @@ export type Database = {
           instance_name?: string | null
           notify_new_pool?: boolean | null
           notify_result?: boolean | null
+          send_to_channel?: boolean | null
           updated_at?: string | null
         }
         Update: {
@@ -368,6 +372,7 @@ export type Database = {
           api_url?: string | null
           broadcast_interval_minutes?: number | null
           broadcast_open_pools?: boolean | null
+          channel_id?: string | null
           created_at?: string | null
           enabled?: boolean | null
           group_id?: string | null
@@ -375,6 +380,7 @@ export type Database = {
           instance_name?: string | null
           notify_new_pool?: boolean | null
           notify_result?: boolean | null
+          send_to_channel?: boolean | null
           updated_at?: string | null
         }
         Relationships: []
