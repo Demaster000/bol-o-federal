@@ -19,13 +19,39 @@ const Index = () => {
   const [selectedPool, setSelectedPool] = useState<PoolWithType | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  // Check for pool parameter in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const poolId = params.get('pool');
+    if (poolId && pools.length > 0) {
+      const pool = pools.find(p => p.id === poolId);
+      if (pool) {
+        setSelectedPool(pool as PoolWithType);
+        setDialogOpen(true);
+      }
+    }
+  }, [pools]);
+
   const fetchPools = async () => {
     const { data } = await supabase
       .from('pools')
       .select('*, lottery_types(*)')
       .eq('status', 'open')
       .order('created_at', { ascending: false });
-    if (data) setPools(data as PoolWithType[]);
+    if (data) {
+      setPools(data as PoolWithType[]);
+      
+      // Auto-open pool if specified in URL
+      const params = new URLSearchParams(window.location.search);
+      const poolId = params.get('pool');
+      if (poolId && user) {
+        const pool = (data as PoolWithType[]).find(p => p.id === poolId);
+        if (pool) {
+          setSelectedPool(pool);
+          setDialogOpen(true);
+        }
+      }
+    }
 
     const { data: winnings } = await supabase
       .from('pools')
@@ -47,6 +73,8 @@ const Index = () => {
     }
     setSelectedPool(pool as PoolWithType);
     setDialogOpen(true);
+    // Update URL to reflect selected pool
+    window.history.replaceState({}, '', `/?pool=${pool.id}`);
   };
 
   return (
