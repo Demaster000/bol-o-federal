@@ -14,6 +14,8 @@ interface WhatsAppSettings {
   api_key: string;
   instance_name: string;
   group_id: string;
+  channel_id: string;
+  send_to_channel: boolean;
   enabled: boolean;
   notify_new_pool: boolean;
   notify_result: boolean;
@@ -57,6 +59,8 @@ const AdminWhatsApp = () => {
         api_key: settings.api_key,
         instance_name: settings.instance_name,
         group_id: settings.group_id,
+        channel_id: settings.channel_id,
+        send_to_channel: settings.send_to_channel,
         enabled: settings.enabled,
         notify_new_pool: settings.notify_new_pool,
         notify_result: settings.notify_result,
@@ -140,7 +144,7 @@ const AdminWhatsApp = () => {
   if (loading) return <div className="text-muted-foreground text-center py-8">Carregando...</div>;
   if (!settings) return <div className="text-muted-foreground text-center py-8">Erro ao carregar configurações.</div>;
 
-  const isConfigured = settings.api_url && settings.api_key && settings.instance_name && settings.group_id;
+  const isConfigured = settings.api_url && settings.api_key && settings.instance_name && (settings.group_id || (settings.send_to_channel && settings.channel_id));
 
   return (
     <div className="space-y-6">
@@ -201,7 +205,7 @@ const AdminWhatsApp = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label>ID do Grupo/Comunidade *</Label>
+            <Label>ID do Grupo/Comunidade</Label>
             <Input
               className="bg-muted"
               placeholder="5511999999999@g.us"
@@ -210,6 +214,32 @@ const AdminWhatsApp = () => {
             />
             <p className="text-xs text-muted-foreground">Formato: número@g.us (grupo) ou ID da comunidade</p>
           </div>
+        </div>
+
+        {/* Channel Settings */}
+        <div className="rounded-lg border border-border p-4 space-y-4 bg-muted/20">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label className="font-semibold">Enviar também para Canal</Label>
+              <p className="text-xs text-muted-foreground">Habilite para enviar mensagens também para um canal do WhatsApp.</p>
+            </div>
+            <Switch
+              checked={settings.send_to_channel}
+              onCheckedChange={(v) => setSettings({ ...settings, send_to_channel: v })}
+            />
+          </div>
+          {settings.send_to_channel && (
+            <div className="space-y-2">
+              <Label>ID do Canal *</Label>
+              <Input
+                className="bg-muted"
+                placeholder="newsletter_id ou 120363..."
+                value={settings.channel_id}
+                onChange={(e) => setSettings({ ...settings, channel_id: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">ID do canal do WhatsApp (newsletter). Obtido via Evolution API.</p>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2">

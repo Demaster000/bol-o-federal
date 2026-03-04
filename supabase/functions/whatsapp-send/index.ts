@@ -12,6 +12,8 @@ interface WhatsAppSettings {
   api_key: string;
   instance_name: string;
   group_id: string;
+  channel_id: string;
+  send_to_channel: boolean;
   enabled: boolean;
   notify_new_pool: boolean;
   notify_result: boolean;
@@ -29,11 +31,7 @@ async function getSettings(supabaseAdmin: any): Promise<WhatsAppSettings | null>
   return data as WhatsAppSettings;
 }
 
-async function sendWhatsAppMessage(settings: WhatsAppSettings, message: string): Promise<{ success: boolean; error?: string }> {
-  if (!settings.enabled || !settings.api_url || !settings.api_key || !settings.instance_name || !settings.group_id) {
-    return { success: false, error: "WhatsApp não configurado ou desabilitado" };
-  }
-
+async function sendToDestination(settings: WhatsAppSettings, destination: string, message: string): Promise<{ success: boolean; error?: string }> {
   const url = `${settings.api_url.replace(/\/$/, "")}/message/sendText/${settings.instance_name}`;
 
   try {
@@ -44,7 +42,7 @@ async function sendWhatsAppMessage(settings: WhatsAppSettings, message: string):
         apikey: settings.api_key,
       },
       body: JSON.stringify({
-        number: settings.group_id,
+        number: destination,
         text: message,
       }),
     });
@@ -56,12 +54,45 @@ async function sendWhatsAppMessage(settings: WhatsAppSettings, message: string):
     }
 
     const result = await response.json();
-    console.log("WhatsApp message sent:", result);
+    console.log("WhatsApp message sent to", destination, ":", result);
     return { success: true };
   } catch (err) {
     console.error("Error sending WhatsApp message:", err);
     return { success: false, error: String(err) };
   }
+}
+
+async function sendWhatsAppMessage(settings: WhatsAppSettings, message: string): Promise<{ success: boolean; error?: string; results?: any[] }> {
+  if (!settings.enabled || !settings.api_url || !settings.api_key || !settings.instance_name) {
+    return { success: false, error: "WhatsApp não configurado ou desabilitado" };
+  }
+
+  const results: { destination: string; success: boolean; error?: string }[] = [];
+
+  // Send to group
+  if (settings.group_id) {
+    const groupResult = await sendToDestination(settings, settings.group_id, message);
+    results.push({ destination: "group", ...groupResult });
+  }
+
+  // Send to channel
+  if (settings.send_to_channel && settings.channel_id) {
+    const channelResult = await sendToDestination(settings, settings.channel_id, message);
+    results.push({ destination: "channel", ...channelResult });
+  }
+
+  if (results.length === 0) {
+    return { success: false, error: "Nenhum destino configurado (grupo ou canal)" };
+  }
+
+  const anySuccess = results.some(r => r.success);
+  const errors = results.filter(r => !r.success).map(r => `${r.destination}: ${r.error}`);
+
+  return {
+    success: anySuccess,
+    error: errors.length > 0 ? errors.join("; ") : undefined,
+    results,
+  };
 }
 
 serve(async (req: Request) => {
