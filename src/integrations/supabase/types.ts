@@ -349,6 +349,7 @@ export type Database = {
           notify_new_pool: boolean | null
           notify_result: boolean | null
           send_to_channel: boolean | null
+          site_url: string | null
           updated_at: string | null
         }
         Insert: {
@@ -365,6 +366,7 @@ export type Database = {
           notify_new_pool?: boolean | null
           notify_result?: boolean | null
           send_to_channel?: boolean | null
+          site_url?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -381,6 +383,7 @@ export type Database = {
           notify_new_pool?: boolean | null
           notify_result?: boolean | null
           send_to_channel?: boolean | null
+          site_url?: string | null
           updated_at?: string | null
         }
         Relationships: []
