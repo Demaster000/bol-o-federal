@@ -19,6 +19,15 @@ interface WhatsAppSettings {
   notify_result: boolean;
   broadcast_open_pools: boolean;
   broadcast_interval_minutes: number;
+  site_url: string;
+}
+
+function formatDateTimeBR(date: Date): string {
+  return date.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDateBR(date: Date): string {
+  return date.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 async function getSettings(supabaseAdmin: any): Promise<WhatsAppSettings | null> {
