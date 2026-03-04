@@ -241,7 +241,6 @@ const AdminWhatsApp = () => {
             </div>
           )}
         </div>
-        </div>
 
         <div className="flex gap-2">
           <Button onClick={handleSave} disabled={saving} className="bg-gradient-green hover:opacity-90 text-primary-foreground">
