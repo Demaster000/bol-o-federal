@@ -226,6 +226,7 @@ const AdminWhatsApp = () => {
             />
             <p className="text-xs text-muted-foreground">URL do site para gerar links diretos nos bolões divulgados.</p>
           </div>
+        </div>
 
         {/* Channel Settings */}
         <div className="rounded-lg border border-border p-4 space-y-4 bg-muted/20">
