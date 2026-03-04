@@ -14,6 +14,8 @@ interface WhatsAppSettings {
   api_key: string;
   instance_name: string;
   group_id: string;
+  channel_id: string;
+  send_to_channel: boolean;
   enabled: boolean;
   notify_new_pool: boolean;
   notify_result: boolean;
