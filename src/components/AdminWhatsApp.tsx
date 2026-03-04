@@ -59,6 +59,8 @@ const AdminWhatsApp = () => {
         api_key: settings.api_key,
         instance_name: settings.instance_name,
         group_id: settings.group_id,
+        channel_id: settings.channel_id,
+        send_to_channel: settings.send_to_channel,
         enabled: settings.enabled,
         notify_new_pool: settings.notify_new_pool,
         notify_result: settings.notify_result,
