@@ -216,7 +216,16 @@ const AdminWhatsApp = () => {
             />
             <p className="text-xs text-muted-foreground">Formato: número@g.us (grupo) ou ID da comunidade</p>
           </div>
-        </div>
+          <div className="space-y-2">
+            <Label>URL do Site</Label>
+            <Input
+              className="bg-muted"
+              placeholder="https://seusite.com"
+              value={settings.site_url}
+              onChange={(e) => setSettings({ ...settings, site_url: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">URL do site para gerar links diretos nos bolões divulgados.</p>
+          </div>
 
         {/* Channel Settings */}
         <div className="rounded-lg border border-border p-4 space-y-4 bg-muted/20">
