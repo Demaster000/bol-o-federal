@@ -75,9 +75,10 @@ async function sendWhatsAppMessage(settings: WhatsAppSettings, message: string):
     results.push({ destination: "group", ...groupResult });
   }
 
-  // Send to channel
+  // Send to channel (newsletter)
   if (settings.send_to_channel && settings.channel_id) {
-    const channelResult = await sendToDestination(settings, settings.channel_id, message);
+    const channelJid = settings.channel_id.includes("@") ? settings.channel_id : `${settings.channel_id}@newsletter`;
+    const channelResult = await sendToDestination(settings, channelJid, message);
     results.push({ destination: "channel", ...channelResult });
   }
 
