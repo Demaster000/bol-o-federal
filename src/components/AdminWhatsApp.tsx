@@ -21,6 +21,7 @@ interface WhatsAppSettings {
   notify_result: boolean;
   broadcast_open_pools: boolean;
   broadcast_interval_minutes: number;
+  site_url: string;
 }
 
 const AdminWhatsApp = () => {
