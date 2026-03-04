@@ -21,6 +21,7 @@ interface WhatsAppSettings {
   notify_result: boolean;
   broadcast_open_pools: boolean;
   broadcast_interval_minutes: number;
+  site_url: string;
 }
 
 const AdminWhatsApp = () => {
@@ -66,6 +67,7 @@ const AdminWhatsApp = () => {
         notify_result: settings.notify_result,
         broadcast_open_pools: settings.broadcast_open_pools,
         broadcast_interval_minutes: settings.broadcast_interval_minutes,
+        site_url: settings.site_url,
         updated_at: new Date().toISOString(),
       } as any)
       .eq('id', settings.id);
@@ -213,6 +215,16 @@ const AdminWhatsApp = () => {
               onChange={(e) => setSettings({ ...settings, group_id: e.target.value })}
             />
             <p className="text-xs text-muted-foreground">Formato: número@g.us (grupo) ou ID da comunidade</p>
+          </div>
+          <div className="space-y-2">
+            <Label>URL do Site</Label>
+            <Input
+              className="bg-muted"
+              placeholder="https://seusite.com"
+              value={settings.site_url}
+              onChange={(e) => setSettings({ ...settings, site_url: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">URL do site para gerar links diretos nos bolões divulgados.</p>
           </div>
         </div>
 

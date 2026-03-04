@@ -19,6 +19,15 @@ interface WhatsAppSettings {
   notify_result: boolean;
   broadcast_open_pools: boolean;
   broadcast_interval_minutes: number;
+  site_url: string;
+}
+
+function formatDateTimeBR(date: Date): string {
+  return date.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDateBR(date: Date): string {
+  return date.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 async function getSettings(supabaseAdmin: any): Promise<WhatsAppSettings | null> {
@@ -203,18 +212,66 @@ serve(async (req: Request) => {
           });
         }
 
-        let message = `🎯 *BOLÕES EM ABERTO* 🎯\n\n`;
+        const siteUrl = (settings.site_url || "").replace(/\/$/, "");
+        const allMessages: string[] = [];
+
         for (const pool of openPools) {
-          const dateStr = pool.draw_date ? new Date(pool.draw_date).toLocaleDateString("pt-BR") : "A definir";
-          message += `📌 *${pool.title}*\n`;
-          message += `   💰 Cota: R$ ${Number(pool.price_per_quota).toFixed(2)}`;
-          if (pool.prize_amount) {
-            message += ` | 🏆 R$ ${Number(pool.prize_amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+          const drawDate = pool.draw_date ? new Date(pool.draw_date) : null;
+          const poolLink = siteUrl ? `${siteUrl}/?pool=${pool.id}` : "Acesse o site";
+
+          // Calculate deadline dates
+          let deadlineCotas = "A definir";
+          let deadlineConferencia = "A definir";
+          let deadlineDivulgacao = "A definir";
+          let periodoParticipacao = "A definir";
+
+          if (drawDate) {
+            const minus3h = new Date(drawDate.getTime() - 3 * 60 * 60 * 1000);
+            const minus2h = new Date(drawDate.getTime() - 2 * 60 * 60 * 1000);
+            const minus30m = new Date(drawDate.getTime() - 30 * 60 * 1000);
+
+            deadlineCotas = formatDateTimeBR(minus3h);
+            deadlineConferencia = formatDateTimeBR(minus2h);
+            deadlineDivulgacao = formatDateTimeBR(minus30m);
+
+            // Participation period: from pool creation to 3h before draw
+            const createdAt = pool.created_at ? new Date(pool.created_at) : new Date();
+            periodoParticipacao = `das ${formatDateTimeBR(createdAt)} às ${formatDateTimeBR(minus3h)}`;
           }
-          message += `\n   📅 ${dateStr}\n\n`;
+
+          const msg = `🎰 *${pool.title}* 🎰\n\n` +
+            `💰 Valor da Cota: R$ ${Number(pool.price_per_quota).toFixed(2)}\n` +
+            `🏦 Participe pelo link: ${poolLink}\n\n` +
+            `📋 *Como Participar*\n\n` +
+            `Realize o pagamento via Pix diretamente em nosso site;\n\n` +
+            `Guarde o comprovante — ele serve como prova da sua participação;\n\n` +
+            `Não é necessário enviar o comprovante, exceto em caso de resgate do prêmio;\n\n` +
+            `Pagamentos feitos em outras chaves Pix serão devolvidos e não valerão para o bolão;\n\n` +
+            `Período de participação: ${periodoParticipacao}.\n\n` +
+            `📆 *Cronograma do Bolão*\n\n` +
+            `Até ${deadlineCotas}: Recebimento das cotas;\n\n` +
+            `Até ${deadlineConferencia}: Conferência dos pagamentos e realização dos jogos;\n\n` +
+            `Até ${deadlineDivulgacao}: Divulgação das cópias digitais das apostas e da lista final de participantes no grupo.\n\n` +
+            `💸 *Distribuição do Prêmio*\n\n` +
+            `10% do valor total do prêmio será destinado ao administrador do bolão;\n\n` +
+            `90% será dividido entre os participantes/cotistas confirmados;\n\n` +
+            `Prêmios inferiores a R$ 600 poderão ser reinvestidos em um novo bolão, anunciado no grupo;\n\n` +
+            `Prêmios acima de 2.500 UFESP (aprox. R$ 96 mil em 2026) terão incidência de ITCMD de 4% + 1% de taxa de assessoria jurídica.\n\n` +
+            `📄 *Declaração de Consentimento*\n` +
+            `Ao efetuar o Pix, o participante declara ter ciência e aceitar integralmente as regras acima, constituindo acordo consensual e informal, independente da Caixa Econômica Federal, regido pelos princípios da liberdade contratual (art. 421 e seguintes do Código Civil) e da boa-fé objetiva (art. 422 do CC). Este bolão não é oficial da Caixa.`;
+
+          allMessages.push(msg);
         }
-        message += `🔗 Acesse agora e participe!`;
-        result = await sendWhatsAppMessage(settings, message);
+
+        // Send each pool as a separate message
+        const broadcastResults: any[] = [];
+        for (const msg of allMessages) {
+          const r = await sendWhatsAppMessage(settings, msg);
+          broadcastResults.push(r);
+        }
+
+        const anySuccess = broadcastResults.some(r => r.success);
+        result = { success: anySuccess, results: broadcastResults };
         break;
       }
 
