@@ -239,6 +239,7 @@ serve(async (req: Request) => {
             periodoParticipacao = `das ${formatDateTimeBR(createdAt)} às ${formatDateTimeBR(minus3h)}`;
           }
 
+<<<<<<< HEAD
           const msg = `Valor da cota: R$ ${Number(pool.price_per_quota).toFixed(2)}\nParticipe: ${poolLink}\n\n` +
             `📌 Como funciona:\n` +
             `• Faça o Pix pelo site e guarde o comprovante.\n` +
@@ -250,6 +251,28 @@ serve(async (req: Request) => {
             `• Prêmios < R$ 500 podem ser reinvestidos no próximo sorteio.\n\n` +
             `✅ Ao pagar, você concorda com as regras.\n` +
             `⚠️ Bolão independente, não oficial da Caixa.`;
+=======
+          const msg = `🎰 *${pool.title}* 🎰\n\n` +
+            `💰 Valor da Cota: R$ ${Number(pool.price_per_quota).toFixed(2)}\n` +
+            `🏦 Participe pelo link: ${poolLink}\n\n` +
+            `📋 *Como Participar*\n\n` +
+            `Realize o pagamento via Pix diretamente em nosso site;\n\n` +
+            `Guarde o comprovante — ele serve como prova da sua participação;\n\n` +
+            `Não é necessário enviar o comprovante, exceto em caso de resgate do prêmio;\n\n` +
+            `Pagamentos feitos em outras chaves Pix serão devolvidos e não valerão para o bolão;\n\n` +
+            `Período de participação: ${periodoParticipacao}.\n\n` +
+            `📆 *Cronograma do Bolão*\n\n` +
+            `Até ${deadlineCotas}: Recebimento das cotas;\n\n` +
+            `Até ${deadlineConferencia}: Conferência dos pagamentos e realização dos jogos;\n\n` +
+            `Até ${deadlineDivulgacao}: Divulgação das cópias digitais das apostas e da lista final de participantes no grupo.\n\n` +
+            `💸 *Distribuição do Prêmio*\n\n` +
+            `10% do valor total do prêmio será destinado ao administrador do bolão;\n\n` +
+            `90% será dividido entre os participantes/cotistas confirmados;\n\n` +
+            `Prêmios inferiores a R$ 600 poderão ser reinvestidos em um novo bolão, anunciado no grupo;\n\n` +
+            `Prêmios acima de 2.500 UFESP (aprox. R$ 96 mil em 2026) terão incidência de ITCMD de 4% + 1% de taxa de assessoria jurídica.\n\n` +
+            `📄 *Declaração de Consentimento*\n` +
+            `Ao efetuar o Pix, o participante declara ter ciência e aceitar integralmente as regras acima, constituindo acordo consensual e informal, independente da Caixa Econômica Federal, regido pelos princípios da liberdade contratual (art. 421 e seguintes do Código Civil) e da boa-fé objetiva (art. 422 do CC). Este bolão não é oficial da Caixa.`;
+>>>>>>> c423897ae3ca3f5dc288e8de98eb96f042a36ee3
 
           allMessages.push(msg);
         }
