@@ -67,6 +67,7 @@ const AdminWhatsApp = () => {
         notify_result: settings.notify_result,
         broadcast_open_pools: settings.broadcast_open_pools,
         broadcast_interval_minutes: settings.broadcast_interval_minutes,
+        site_url: settings.site_url,
         updated_at: new Date().toISOString(),
       } as any)
       .eq('id', settings.id);
