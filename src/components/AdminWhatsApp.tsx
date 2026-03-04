@@ -144,7 +144,7 @@ const AdminWhatsApp = () => {
   if (loading) return <div className="text-muted-foreground text-center py-8">Carregando...</div>;
   if (!settings) return <div className="text-muted-foreground text-center py-8">Erro ao carregar configurações.</div>;
 
-  const isConfigured = settings.api_url && settings.api_key && settings.instance_name && settings.group_id;
+  const isConfigured = settings.api_url && settings.api_key && settings.instance_name && (settings.group_id || (settings.send_to_channel && settings.channel_id));
 
   return (
     <div className="space-y-6">
