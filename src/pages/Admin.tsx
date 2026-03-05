@@ -89,7 +89,7 @@ const Admin = () => {
     }
 
     setFormLoading(true);
-    const { error } = await supabase.from('pools').insert({
+    const { data: insertedPool, error } = await supabase.from('pools').insert({
       lottery_type_id: form.lottery_type_id,
       title: form.title,
       description: form.description || null,
@@ -98,7 +98,7 @@ const Admin = () => {
       draw_date: form.draw_date || null,
       unlimited_quotas: form.unlimited_quotas,
       total_quotas: form.unlimited_quotas ? 999999 : totalQuotasVal,
-    });
+    }).select().single();
     setFormLoading(false);
     if (error) {
       console.error('Create pool error:', error);
@@ -112,7 +112,7 @@ const Admin = () => {
         fetch(`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/whatsapp-send`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ type: 'new_pool', data: { id: data.id, title: form.title, price: parseFloat(form.price_per_quota), prize: parseFloat(form.prize_amount), draw_date: form.draw_date } }),
+          body: JSON.stringify({ type: 'new_pool', data: { id: insertedPool?.id, title: form.title, price: parseFloat(form.price_per_quota), prize: parseFloat(form.prize_amount), draw_date: form.draw_date } }),
         }).catch(console.error);
       } catch {}
       setCreateOpen(false);
