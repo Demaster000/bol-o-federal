@@ -124,15 +124,14 @@ serve(async (req: Request) => {
       const supabaseAuth = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      const token = authHeader.replace("Bearer ", "");
-      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
-      if (claimsError || !claimsData?.claims) {
+      const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
+      if (userError || !userData?.user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const userId = claimsData.claims.sub;
+      const userId = userData.user.id;
       const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: userId, _role: "admin" });
       if (!isAdmin) {
         return new Response(JSON.stringify({ error: "Admin only" }), {
@@ -142,7 +141,6 @@ serve(async (req: Request) => {
       }
     } else {
       // Internal call (from other edge functions or cron) - allow if no auth header
-      // This is secured by the fact that edge functions are not publicly callable without the anon key
     }
 
     const settings = await getSettings(supabaseAdmin);
