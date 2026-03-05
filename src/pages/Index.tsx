@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Trophy, Star, Shield, Zap } from 'lucide-react';
+import logo from '@/assets/logo.png';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
@@ -99,10 +100,11 @@ const Index = () => {
               <Star className="h-3.5 w-3.5 text-secondary" />
               A melhor plataforma de bolões do Brasil
             </div>
+            <img src={logo} alt="Sorte Compartilhada" className="mx-auto mb-6 h-32 w-auto drop-shadow-2xl" />
             <h1 className="font-display text-5xl font-bold leading-tight md:text-7xl">
               Sua sorte começa
               <br />
-              <span className="text-gradient-gold">no BolãoVIP</span>
+              <span className="text-gradient-gold">aqui!</span>
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
               Participe de bolões da Loteria Federal com cotas acessíveis. 
@@ -241,10 +243,10 @@ const Index = () => {
       <footer className="border-t border-border bg-card/30 py-8 text-center text-sm text-muted-foreground">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-center gap-2">
-            <Trophy className="h-4 w-4 text-primary" />
-            <span className="font-display font-semibold text-gradient-gold">BolãoVIP</span>
+            <img src={logo} alt="Sorte Compartilhada" className="h-8 w-auto" />
+            <span className="font-display font-semibold text-gradient-gold">Sorte Compartilhada</span>
           </div>
-          <p className="mt-2">© 2026 BolãoVIP. Todos os direitos reservados.</p>
+          <p className="mt-2">© 2026 Sorte Compartilhada. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>

@@ -1,7 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Trophy, LogOut, Settings, User } from 'lucide-react';
+import { LogOut, Settings, User } from 'lucide-react';
+import logo from '@/assets/logo.png';
 
 const Header = () => {
   const { user, isAdmin, signOut } = useAuth();
@@ -11,10 +12,8 @@ const Header = () => {
     <header className="sticky top-0 z-50 glass">
       <div className="container mx-auto flex items-center justify-between px-4 py-3">
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-green">
-            <Trophy className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <span className="font-display text-xl font-bold text-gradient-gold">BolãoVIP</span>
+          <img src={logo} alt="Sorte Compartilhada" className="h-10 w-auto" />
+          <span className="font-display text-xl font-bold text-gradient-gold">Sorte Compartilhada</span>
         </Link>
 
         <nav className="flex items-center gap-3">
