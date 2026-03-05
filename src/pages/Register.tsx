@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Trophy } from 'lucide-react';
+import logo from '@/assets/logo.png';
 
 const Register = () => {
   const [fullName, setFullName] = useState('');
