@@ -170,19 +170,21 @@ serve(async (req: Request) => {
         let deadlineCotas = "A definir";
         if (draw_date) {
           const drawDate = new Date(draw_date);
-          const minus3h = new Date(drawDate.getTime() - 3 * 60 * 60 * 1000);
-          deadlineCotas = formatDateTimeBR(minus3h);
+          const minus5h = new Date(drawDate.getTime() - 5 * 60 * 60 * 1000);
+          deadlineCotas = formatDateTimeBR(minus5h);
         }
 
-        const message = `Valor da cota: R$ ${Number(price).toFixed(2)}\nParticipe: ${poolLink}\n\n` +
+        const message = `Valor da cota: R$ ${Number(price).toFixed(2)}\n` +
+          `Participe: ${poolLink}\n\n` +
           `📌 Como funciona:\n` +
           `• Faça o Pix pelo site e guarde o comprovante.\n` +
           `• Não é necessário enviar comprovante (salvo em caso de prêmio).\n` +
           `• Pix feito em outra chave será devolvido.\n` +
           `• Participação válida: Até ${deadlineCotas}\n\n` +
+          `📆 Apostas e lista de participantes serão divulgadas antes do sorteio no grupo.\n\n` +
           `💸 Prêmio:\n` +
           `• 10% administrador | 90% participantes.\n` +
-          `• Prêmios < R$ 500 podem ser reinvestidos no próximo sorteio.\n\n` +
+          `• Prêmios < R$ 600 podem ser reinvestidos.\n\n` +
           `✅ Ao pagar, você concorda com as regras.\n` +
           `⚠️ Bolão independente, não oficial da Caixa.`;
         result = await sendWhatsAppMessage(settings, message);
@@ -233,35 +235,23 @@ serve(async (req: Request) => {
           const drawDate = pool.draw_date ? new Date(pool.draw_date) : null;
           const poolLink = siteUrl ? `${siteUrl}/?pool=${pool.id}` : "Acesse o site";
 
-          // Calculate deadline dates
           let deadlineCotas = "A definir";
-          let deadlineConferencia = "A definir";
-          let deadlineDivulgacao = "A definir";
-          let periodoParticipacao = "A definir";
-
           if (drawDate) {
-            const minus3h = new Date(drawDate.getTime() - 3 * 60 * 60 * 1000);
-            const minus2h = new Date(drawDate.getTime() - 2 * 60 * 60 * 1000);
-            const minus30m = new Date(drawDate.getTime() - 30 * 60 * 1000);
-
-            deadlineCotas = formatDateTimeBR(minus3h);
-            deadlineConferencia = formatDateTimeBR(minus2h);
-            deadlineDivulgacao = formatDateTimeBR(minus30m);
-
-            // Participation period: from pool creation to 3h before draw
-            const createdAt = pool.created_at ? new Date(pool.created_at) : new Date();
-            periodoParticipacao = `das ${formatDateTimeBR(createdAt)} às ${formatDateTimeBR(minus3h)}`;
+            const minus5h = new Date(drawDate.getTime() - 5 * 60 * 60 * 1000);
+            deadlineCotas = formatDateTimeBR(minus5h);
           }
 
-          const msg = `Valor da cota: R$ ${Number(pool.price_per_quota).toFixed(2)}\nParticipe: ${poolLink}\n\n` +
+          const msg = `Valor da cota: R$ ${Number(pool.price_per_quota).toFixed(2)}\n` +
+            `Participe: ${poolLink}\n\n` +
             `📌 Como funciona:\n` +
             `• Faça o Pix pelo site e guarde o comprovante.\n` +
             `• Não é necessário enviar comprovante (salvo em caso de prêmio).\n` +
             `• Pix feito em outra chave será devolvido.\n` +
             `• Participação válida: Até ${deadlineCotas}\n\n` +
+            `📆 Apostas e lista de participantes serão divulgadas antes do sorteio no grupo.\n\n` +
             `💸 Prêmio:\n` +
             `• 10% administrador | 90% participantes.\n` +
-            `• Prêmios < R$ 500 podem ser reinvestidos no próximo sorteio.\n\n` +
+            `• Prêmios < R$ 600 podem ser reinvestidos.\n\n` +
             `✅ Ao pagar, você concorda com as regras.\n` +
             `⚠️ Bolão independente, não oficial da Caixa.`;
 
