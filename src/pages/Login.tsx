@@ -36,10 +36,8 @@ const Login = () => {
       <div className="relative w-full max-w-md space-y-8">
         <div className="text-center">
           <Link to="/" className="inline-flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-green">
-              <Trophy className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-display text-2xl font-bold text-gradient-gold">BolãoVIP</span>
+            <img src={logo} alt="Sorte Compartilhada" className="h-14 w-auto" />
+            <span className="font-display text-2xl font-bold text-gradient-gold">Sorte Compartilhada</span>
           </Link>
           <h1 className="mt-6 font-display text-2xl font-bold text-foreground">Bem-vindo de volta</h1>
           <p className="mt-1 text-sm text-muted-foreground">Entre para participar dos bolões</p>

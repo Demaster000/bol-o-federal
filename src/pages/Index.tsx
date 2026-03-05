@@ -243,10 +243,10 @@ const Index = () => {
       <footer className="border-t border-border bg-card/30 py-8 text-center text-sm text-muted-foreground">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-center gap-2">
-            <Trophy className="h-4 w-4 text-primary" />
-            <span className="font-display font-semibold text-gradient-gold">BolãoVIP</span>
+            <img src={logo} alt="Sorte Compartilhada" className="h-8 w-auto" />
+            <span className="font-display font-semibold text-gradient-gold">Sorte Compartilhada</span>
           </div>
-          <p className="mt-2">© 2026 BolãoVIP. Todos os direitos reservados.</p>
+          <p className="mt-2">© 2026 Sorte Compartilhada. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>
