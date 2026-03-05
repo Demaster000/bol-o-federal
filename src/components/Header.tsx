@@ -11,9 +11,8 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-50 glass">
       <div className="container mx-auto flex items-center justify-between px-4 py-3">
-        <Link to="/" className="flex items-center gap-2">
-          <img src={logo} alt="Sorte Compartilhada" className="h-10 w-auto" />
-          <span className="font-display text-xl font-bold text-gradient-gold">Sorte Compartilhada</span>
+        <Link to="/" className="flex items-center">
+          <img src={logo} alt="Sorte Compartilhada" className="h-12 w-auto" />
         </Link>
 
         <nav className="flex items-center gap-3">

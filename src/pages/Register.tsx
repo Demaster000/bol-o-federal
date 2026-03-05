@@ -38,9 +38,8 @@ const Register = () => {
       <div className="absolute inset-0 bg-gradient-hero opacity-50" />
       <div className="relative w-full max-w-md space-y-8">
         <div className="text-center">
-          <Link to="/" className="inline-flex items-center gap-2">
-            <img src={logo} alt="Sorte Compartilhada" className="h-14 w-auto" />
-            <span className="font-display text-2xl font-bold text-gradient-gold">Sorte Compartilhada</span>
+          <Link to="/" className="inline-flex items-center">
+            <img src={logo} alt="Sorte Compartilhada" className="h-20 w-auto" />
           </Link>
           <h1 className="mt-6 font-display text-2xl font-bold text-foreground">Criar conta</h1>
           <p className="mt-1 text-sm text-muted-foreground">Cadastre-se para participar dos bolões</p>
