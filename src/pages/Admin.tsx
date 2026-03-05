@@ -89,7 +89,7 @@ const Admin = () => {
     }
 
     setFormLoading(true);
-    const { error } = await supabase.from('pools').insert({
+    const { data: insertedPool, error } = await supabase.from('pools').insert({
       lottery_type_id: form.lottery_type_id,
       title: form.title,
       description: form.description || null,
@@ -98,7 +98,7 @@ const Admin = () => {
       draw_date: form.draw_date || null,
       unlimited_quotas: form.unlimited_quotas,
       total_quotas: form.unlimited_quotas ? 999999 : totalQuotasVal,
-    });
+    }).select().single();
     setFormLoading(false);
     if (error) {
       console.error('Create pool error:', error);
