@@ -100,10 +100,11 @@ const Index = () => {
               <Star className="h-3.5 w-3.5 text-secondary" />
               A melhor plataforma de bolões do Brasil
             </div>
+            <img src={logo} alt="Sorte Compartilhada" className="mx-auto mb-6 h-32 w-auto drop-shadow-2xl" />
             <h1 className="font-display text-5xl font-bold leading-tight md:text-7xl">
               Sua sorte começa
               <br />
-              <span className="text-gradient-gold">no BolãoVIP</span>
+              <span className="text-gradient-gold">aqui!</span>
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
               Participe de bolões da Loteria Federal com cotas acessíveis. 
