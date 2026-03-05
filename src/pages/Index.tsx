@@ -242,9 +242,8 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t border-border bg-card/30 py-8 text-center text-sm text-muted-foreground">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-center gap-2">
-            <img src={logo} alt="Sorte Compartilhada" className="h-8 w-auto" />
-            <span className="font-display font-semibold text-gradient-gold">Sorte Compartilhada</span>
+          <div className="flex items-center justify-center">
+            <img src={logo} alt="Sorte Compartilhada" className="h-12 w-auto" />
           </div>
           <p className="mt-2">© 2026 Sorte Compartilhada. Todos os direitos reservados.</p>
         </div>
