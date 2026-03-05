@@ -100,7 +100,7 @@ const Index = () => {
               <Star className="h-3.5 w-3.5 text-secondary" />
               A melhor plataforma de bolões do Brasil
             </div>
-            <img src={logo} alt="Sorte Compartilhada" className="mx-auto mb-6 h-32 w-auto drop-shadow-2xl" />
+            <img src={logo} alt="Sorte Compartilhada" className="mx-auto mb-6 h-40 w-auto drop-shadow-2xl" />
             <h1 className="font-display text-5xl font-bold leading-tight md:text-7xl">
               Sua sorte começa
               <br />
