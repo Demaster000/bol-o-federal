@@ -66,7 +66,7 @@ const AdminWhatsApp = () => {
         notify_new_pool: settings.notify_new_pool,
         notify_result: settings.notify_result,
         broadcast_open_pools: settings.broadcast_open_pools,
-        broadcast_interval_minutes: settings.broadcast_interval_minutes,
+        broadcast_interval_minutes: Math.max(5, settings.broadcast_interval_minutes || 60),
         site_url: settings.site_url,
         updated_at: new Date().toISOString(),
       } as any)
@@ -315,7 +315,7 @@ const AdminWhatsApp = () => {
               value={settings.broadcast_interval_minutes}
               onChange={(e) => setSettings({ ...settings, broadcast_interval_minutes: parseInt(e.target.value) || 60 })}
             />
-            <p className="text-xs text-muted-foreground">Mínimo: 5 minutos. A divulgação periódica precisa ser disparada manualmente ou via cron externo.</p>
+            <p className="text-xs text-muted-foreground">Mínimo: 5 minutos. A divulgação periódica é automática após salvar.</p>
           </div>
         )}
 
