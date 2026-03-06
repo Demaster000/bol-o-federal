@@ -26,10 +26,6 @@ function formatDateTimeBR(date: Date): string {
   return date.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-function formatDateTimeBR(date: Date): string {
-  return date.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
-}
-
 function normalizeIntervalMinutes(interval: number | null | undefined): number {
   if (!interval || Number.isNaN(interval)) return 60;
   return Math.max(5, Math.floor(interval));
