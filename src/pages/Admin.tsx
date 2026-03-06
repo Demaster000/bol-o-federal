@@ -319,7 +319,7 @@ const Admin = () => {
           <h1 className="font-display text-3xl font-bold text-foreground">
             Painel <span className="text-gradient-gold">Admin</span>
           </h1>
-          <Button onClick={() => setCreateOpen(true)} className="bg-gradient-green hover:opacity-90 text-primary-foreground">
+          <Button onClick={() => { setForm(f => ({ ...f, lottery_type_id: '', title: '', description: DEFAULT_DESCRIPTION, price_per_quota: '', prize_amount: '', draw_date: '', unlimited_quotas: false, total_quotas: '100' })); setCreateOpen(true); }} className="bg-gradient-green hover:opacity-90 text-primary-foreground">
             <Plus className="mr-1.5 h-4 w-4" /> Novo Bolão
           </Button>
         </div>
