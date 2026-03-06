@@ -255,11 +255,21 @@ serve(async (req: Request) => {
           });
         }
         const { title, numbers, prize } = data;
-        const message = `🏆 *RESULTADO DO BOLÃO* 🏆\n\n` +
-          `📌 *${title}*\n` +
-          `🔢 Números sorteados: *${numbers}*\n` +
-          (prize ? `💰 Prêmio: R$ ${Number(prize).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}\n` : "") +
-          `\nAcesse a plataforma para verificar se você ganhou! 🍀`;
+        const prizeNum = Number(prize) || 0;
+        const hasPrize = prizeNum > 0;
+
+        const message = hasPrize
+          ? `🏆 *RESULTADO DO BOLÃO* 🏆\n\n` +
+            `📌 *${title}*\n` +
+            `🔢 Números sorteados: *${numbers}*\n` +
+            `💰 Prêmio: R$ ${prizeNum.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}\n\n` +
+            `Acesse a plataforma para verificar se você ganhou! 🍀`
+          : `📊 *RESULTADO DO BOLÃO* 📊\n\n` +
+            `📌 *${title}*\n` +
+            `🔢 Números sorteados: *${numbers}*\n\n` +
+            `Infelizmente não tivemos ganhadores desta vez. 😔\n` +
+            `Mas não desanime! A sorte pode estar no próximo bolão. 🍀\n` +
+            `Continue tentando, sua vez vai chegar! 💪🔥`;
         result = await sendWhatsAppMessage(settings, message);
         break;
       }
