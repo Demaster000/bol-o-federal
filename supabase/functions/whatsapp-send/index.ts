@@ -26,8 +26,19 @@ function formatDateTimeBR(date: Date): string {
   return date.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-function formatDateBR(date: Date): string {
-  return date.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+function formatDateTimeBR(date: Date): string {
+  return date.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function normalizeIntervalMinutes(interval: number | null | undefined): number {
+  if (!interval || Number.isNaN(interval)) return 60;
+  return Math.max(5, Math.floor(interval));
+}
+
+function shouldRunScheduledBroadcast(intervalMinutes: number, now = new Date()): boolean {
+  const interval = normalizeIntervalMinutes(intervalMinutes);
+  const totalMinutesUtc = now.getUTCHours() * 60 + now.getUTCMinutes();
+  return totalMinutesUtc % interval === 0;
 }
 
 async function getSettings(supabaseAdmin: any): Promise<WhatsAppSettings | null> {
@@ -38,6 +49,57 @@ async function getSettings(supabaseAdmin: any): Promise<WhatsAppSettings | null>
     .single();
   if (error || !data) return null;
   return data as WhatsAppSettings;
+}
+
+async function sendBroadcastOpenPools(supabaseAdmin: any, settings: WhatsAppSettings): Promise<{ success: boolean; reason?: string; results?: any[]; error?: string }> {
+  const { data: openPools } = await supabaseAdmin
+    .from("pools")
+    .select("*, lottery_types(*)")
+    .eq("status", "open")
+    .order("created_at", { ascending: false });
+
+  if (!openPools || openPools.length === 0) {
+    return { success: true, reason: "Nenhum bolão aberto" };
+  }
+
+  const siteUrl = (settings.site_url || "").replace(/\/$/, "");
+  const allMessages: string[] = [];
+
+  for (const pool of openPools) {
+    const drawDate = pool.draw_date ? new Date(pool.draw_date) : null;
+    const poolLink = siteUrl ? `${siteUrl}/?pool=${pool.id}` : "Acesse o site";
+
+    let deadlineCotas = "A definir";
+    if (drawDate) {
+      const minus5h = new Date(drawDate.getTime() - 5 * 60 * 60 * 1000);
+      deadlineCotas = formatDateTimeBR(minus5h);
+    }
+
+    const msg = `Valor da cota: R$ ${Number(pool.price_per_quota).toFixed(2)}\n` +
+      `Participe: ${poolLink}\n\n` +
+      `📌 Como funciona:\n` +
+      `• Faça o Pix pelo site e guarde o comprovante.\n` +
+      `• Não é necessário enviar comprovante (salvo em caso de prêmio).\n` +
+      `• Pix feito em outra chave será devolvido.\n` +
+      `• Participação válida: Até ${deadlineCotas}\n\n` +
+      `📆 Apostas e lista de participantes serão divulgadas antes do sorteio no grupo.\n\n` +
+      `💸 Prêmio:\n` +
+      `• 10% administrador | 90% participantes.\n` +
+      `• Prêmios < R$ 600 podem ser reinvestidos.\n\n` +
+      `✅ Ao pagar, você concorda com as regras.\n` +
+      `⚠️ Bolão independente, não oficial da Caixa.`;
+
+    allMessages.push(msg);
+  }
+
+  const broadcastResults: any[] = [];
+  for (const msg of allMessages) {
+    const r = await sendWhatsAppMessage(settings, msg);
+    broadcastResults.push(r);
+  }
+
+  const anySuccess = broadcastResults.some(r => r.success);
+  return { success: anySuccess, results: broadcastResults };
 }
 
 async function sendToDestination(settings: WhatsAppSettings, destination: string, message: string): Promise<{ success: boolean; error?: string }> {
