@@ -315,7 +315,7 @@ const AdminWhatsApp = () => {
               value={settings.broadcast_interval_minutes}
               onChange={(e) => setSettings({ ...settings, broadcast_interval_minutes: parseInt(e.target.value) || 60 })}
             />
-            <p className="text-xs text-muted-foreground">Mínimo: 5 minutos. A divulgação periódica precisa ser disparada manualmente ou via cron externo.</p>
+            <p className="text-xs text-muted-foreground">Mínimo: 5 minutos. A divulgação periódica é automática após salvar.</p>
           </div>
         )}
 
