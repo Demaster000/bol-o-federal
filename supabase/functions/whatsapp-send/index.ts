@@ -275,58 +275,28 @@ serve(async (req: Request) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        const { data: openPools } = await supabaseAdmin
-          .from("pools")
-          .select("*, lottery_types(*)")
-          .eq("status", "open")
-          .order("created_at", { ascending: false });
 
-        if (!openPools || openPools.length === 0) {
-          return new Response(JSON.stringify({ success: true, reason: "Nenhum bolão aberto" }), {
+        result = await sendBroadcastOpenPools(supabaseAdmin, settings);
+        break;
+      }
+
+      case "scheduled_broadcast": {
+        if (!settings.broadcast_open_pools) {
+          return new Response(JSON.stringify({ success: true, reason: "Divulgação periódica desabilitada" }), {
             status: 200,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
-        const siteUrl = (settings.site_url || "").replace(/\/$/, "");
-        const allMessages: string[] = [];
-
-        for (const pool of openPools) {
-          const drawDate = pool.draw_date ? new Date(pool.draw_date) : null;
-          const poolLink = siteUrl ? `${siteUrl}/?pool=${pool.id}` : "Acesse o site";
-
-          let deadlineCotas = "A definir";
-          if (drawDate) {
-            const minus5h = new Date(drawDate.getTime() - 5 * 60 * 60 * 1000);
-            deadlineCotas = formatDateTimeBR(minus5h);
-          }
-
-          const msg = `Valor da cota: R$ ${Number(pool.price_per_quota).toFixed(2)}\n` +
-            `Participe: ${poolLink}\n\n` +
-            `📌 Como funciona:\n` +
-            `• Faça o Pix pelo site e guarde o comprovante.\n` +
-            `• Não é necessário enviar comprovante (salvo em caso de prêmio).\n` +
-            `• Pix feito em outra chave será devolvido.\n` +
-            `• Participação válida: Até ${deadlineCotas}\n\n` +
-            `📆 Apostas e lista de participantes serão divulgadas antes do sorteio no grupo.\n\n` +
-            `💸 Prêmio:\n` +
-            `• 10% administrador | 90% participantes.\n` +
-            `• Prêmios < R$ 600 podem ser reinvestidos.\n\n` +
-            `✅ Ao pagar, você concorda com as regras.\n` +
-            `⚠️ Bolão independente, não oficial da Caixa.`;
-
-          allMessages.push(msg);
+        const interval = normalizeIntervalMinutes(settings.broadcast_interval_minutes);
+        if (!shouldRunScheduledBroadcast(interval)) {
+          return new Response(JSON.stringify({ success: true, reason: `Fora da janela do intervalo (${interval} min)` }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
 
-        // Send each pool as a separate message
-        const broadcastResults: any[] = [];
-        for (const msg of allMessages) {
-          const r = await sendWhatsAppMessage(settings, msg);
-          broadcastResults.push(r);
-        }
-
-        const anySuccess = broadcastResults.some(r => r.success);
-        result = { success: anySuccess, results: broadcastResults };
+        result = await sendBroadcastOpenPools(supabaseAdmin, settings);
         break;
       }
 
