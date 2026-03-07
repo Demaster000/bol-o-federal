@@ -27,7 +27,7 @@ const Index = () => {
     if (poolId) {
       // If not logged in, redirect to login with the current pool as redirect param
       if (!user && !authLoading) {
-        window.location.href = `/login?redirect=/?pool=${poolId}`;
+        window.location.href = `/login?pool=${poolId}`;
         return;
       }
       
@@ -68,7 +68,7 @@ const Index = () => {
   const handleBuy = (pool: Tables<'pools'>) => {
     if (!user) {
       // Redirecionar para login com URL de retorno
-      window.location.href = `/login?redirect=/?pool=${pool.id}`;
+      window.location.href = `/login?pool=${pool.id}`;
       return;
     }
     setSelectedPool(pool as PoolWithType);
@@ -123,7 +123,7 @@ const Index = () => {
                 </Link>
               ) : (
                 <>
-                  <Link to="/register">
+                  <Link to="/login?mode=register">
                     <Button size="lg" className="bg-gradient-green hover:opacity-90 text-primary-foreground font-display font-semibold px-8">
                       Começar Agora
                     </Button>
