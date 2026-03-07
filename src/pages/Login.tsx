@@ -77,15 +77,13 @@ const Login = () => {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
     } else {
       toast({ 
-        title: 'Cadastro realizado!', 
-        description: 'Verifique seu email para confirmar a conta. Após confirmar, você poderá fazer login.' 
+        title: 'Bem-vindo!', 
+        description: 'Sua conta foi criada com sucesso. Você será redirecionado em breve.' 
       });
-      // Limpar formulário e voltar para login
-      setFullName('');
-      setEmail('');
-      setPassword('');
-      setConfirmPassword('');
-      setMode('login');
+      // Aguardar um pouco para o usuário ver a mensagem, depois redirecionar
+      setTimeout(() => {
+        navigate(getRedirectUrl());
+      }, 1500);
     }
   };
 

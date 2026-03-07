@@ -28,8 +28,10 @@ const Register = () => {
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Cadastro realizado!', description: 'Verifique seu email para confirmar a conta.' });
-      navigate('/login');
+      toast({ title: 'Bem-vindo!', description: 'Sua conta foi criada com sucesso. Você será redirecionado em breve.' });
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
     }
   };
 

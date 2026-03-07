@@ -58,6 +58,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         emailRedirectTo: window.location.origin,
       },
     });
+    
+    // Se o registro foi bem-sucedido, fazer login automático
+    if (!error) {
+      await supabase.auth.signInWithPassword({ email, password });
+    }
+    
     return { error };
   };
 
