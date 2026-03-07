@@ -21,23 +21,23 @@ const Index = () => {
 
   // Check for pool parameter in URL and handle auto-open
   useEffect(() => {
-    // Only proceed if auth is not loading and we have pools
-    if (authLoading || pools.length === 0) return;
-
     const params = new URLSearchParams(window.location.search);
     const poolId = params.get('pool');
     
     if (poolId) {
-      const pool = pools.find(p => p.id === poolId);
-      if (pool) {
-        if (!user) {
-          // If not logged in, redirect to login with the current pool as redirect param
-          window.location.href = `/login?redirect=/?pool=${poolId}`;
-          return;
+      // If not logged in, redirect to login with the current pool as redirect param
+      if (!user && !authLoading) {
+        window.location.href = `/login?redirect=/?pool=${poolId}`;
+        return;
+      }
+      
+      // If logged in and we have pools, open the dialog
+      if (user && pools.length > 0) {
+        const pool = pools.find(p => p.id === poolId);
+        if (pool) {
+          setSelectedPool(pool as PoolWithType);
+          setDialogOpen(true);
         }
-        // If logged in, open the dialog
-        setSelectedPool(pool as PoolWithType);
-        setDialogOpen(true);
       }
     }
   }, [pools, user, authLoading]);
@@ -77,6 +77,12 @@ const Index = () => {
     window.history.replaceState({}, '', `/?pool=${pool.id}`);
   };
 
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+    // Remove pool parameter from URL when dialog closes
+    window.history.replaceState({}, '', '/');
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -102,7 +108,7 @@ const Index = () => {
             <h1 className="font-display text-5xl font-bold leading-tight md:text-7xl">
               Sua sorte começa
               <br />
-              <span className="text-gradient-gold">no BolãoVIP</span>
+              <span className="text-gradient-gold">no Sorte Compartilhada</span>
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
               Participe de bolões da Loteria Federal com cotas acessíveis. 
@@ -233,7 +239,7 @@ const Index = () => {
       <BuyQuotaDialog
         pool={selectedPool}
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={handleDialogClose}
         onSuccess={fetchPools}
       />
 
@@ -242,9 +248,9 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-center gap-2">
             <Trophy className="h-4 w-4 text-primary" />
-            <span className="font-display font-semibold text-gradient-gold">BolãoVIP</span>
+            <span className="font-display font-semibold text-gradient-gold">Sorte Compartilhada</span>
           </div>
-          <p className="mt-2">© 2026 BolãoVIP. Todos os direitos reservados.</p>
+          <p className="mt-2">© 2026 Sorte Compartilhada. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>

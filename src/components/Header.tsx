@@ -14,7 +14,7 @@ const Header = () => {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-green">
             <Trophy className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="font-display text-xl font-bold text-gradient-gold">BolãoVIP</span>
+          <span className="font-display text-xl font-bold text-gradient-gold">Sorte Compartilhada</span>
         </Link>
 
         <nav className="flex items-center gap-3">
