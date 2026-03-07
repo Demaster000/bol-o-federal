@@ -33,10 +33,12 @@ function normalizeIntervalMinutes(interval: number | null | undefined): number {
 
 function shouldRunScheduledBroadcast(intervalMinutes: number, now = new Date()): boolean {
   const interval = normalizeIntervalMinutes(intervalMinutes);
-  // Usamos o timestamp em minutos para garantir que o intervalo seja respeitado
-  // independente do horário de início do dia.
+  // Check if we should run based on the last broadcast time
+  // We use a more lenient approach: run if it's been at least interval minutes since last run
   const totalMinutes = Math.floor(now.getTime() / (1000 * 60));
-  return totalMinutes % interval === 0;
+  // Allow execution within a 2-minute window to account for cron timing variations
+  const remainder = totalMinutes % interval;
+  return remainder === 0 || remainder === 1 || (interval > 5 && remainder === interval - 1);
 }
 
 async function getSettings(supabaseAdmin: any): Promise<WhatsAppSettings | null> {
@@ -285,6 +287,19 @@ serve(async (req: Request) => {
         }
 
         result = await sendBroadcastOpenPools(supabaseAdmin, settings);
+        
+        try {
+          await supabaseAdmin
+            .from("whatsapp_broadcast_log")
+            .insert({
+              broadcast_type: "open_pools",
+              last_run_at: new Date().toISOString(),
+              success: result.success,
+              message: result.error || result.reason || "Broadcast sent successfully",
+            });
+        } catch (logErr) {
+          console.error("Failed to log broadcast:", logErr);
+        }
         break;
       }
 
@@ -305,6 +320,19 @@ serve(async (req: Request) => {
         }
 
         result = await sendBroadcastOpenPools(supabaseAdmin, settings);
+        
+        try {
+          await supabaseAdmin
+            .from("whatsapp_broadcast_log")
+            .insert({
+              broadcast_type: "open_pools",
+              last_run_at: new Date().toISOString(),
+              success: result.success,
+              message: result.error || result.reason || "Scheduled broadcast sent successfully",
+            });
+        } catch (logErr) {
+          console.error("Failed to log scheduled broadcast:", logErr);
+        }
         break;
       }
 

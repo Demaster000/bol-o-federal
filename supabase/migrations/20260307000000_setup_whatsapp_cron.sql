@@ -1,5 +1,6 @@
--- Enable pg_cron extension if not already enabled
+-- Enable pg_cron and pgnet extensions if not already enabled
 CREATE EXTENSION IF NOT EXISTS pg_cron;
+CREATE EXTENSION IF NOT EXISTS pgnet;
 
 -- Create a function to trigger the WhatsApp broadcast
 CREATE OR REPLACE FUNCTION public.trigger_whatsapp_broadcast()
@@ -15,19 +16,22 @@ BEGIN
   -- Note: In a real Supabase environment, these are usually available via vault or decrypted secrets
   -- For this implementation, we assume the function will be called by pg_cron
   
-  -- We use net.http_post to call the edge function
-  -- This requires the pgnet extension
-  PERFORM
-    net.http_post(
-      url := 'https://' || current_setting('app.settings.supabase_project_id') || '.supabase.co/functions/v1/whatsapp-send',
-      headers := jsonb_build_object(
-        'Content-Type', 'application/json',
-        'Authorization', 'Bearer ' || current_setting('app.settings.supabase_service_role_key')
-      ),
-      body := jsonb_build_object(
-        'type', 'scheduled_broadcast'
-      )
-    );
+  supabase_url := 'https://' || current_setting('app.settings.supabase_project_id', true) || '.supabase.co/functions/v1/whatsapp-send';
+  service_role_key := current_setting('app.settings.supabase_service_role_key', true);
+
+  IF supabase_url IS NOT NULL AND service_role_key IS NOT NULL THEN
+    PERFORM
+      net.http_post(
+        url := supabase_url,
+        headers := jsonb_build_object(
+          'Content-Type', 'application/json',
+          'Authorization', 'Bearer ' || service_role_key
+        ),
+        body := jsonb_build_object(
+          'type', 'scheduled_broadcast'
+        )
+      );
+  END IF;
 END;
 $$;
 
