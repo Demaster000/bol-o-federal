@@ -68,7 +68,8 @@ const Index = () => {
 
   const handleBuy = (pool: Tables<'pools'>) => {
     if (!user) {
-      window.location.href = '/login';
+      // Redirecionar para login com URL de retorno
+      window.location.href = `/login?redirect=/?pool=${pool.id}`;
       return;
     }
     setSelectedPool(pool as PoolWithType);
