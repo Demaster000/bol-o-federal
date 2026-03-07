@@ -89,7 +89,7 @@ const Admin = () => {
     }
 
     setFormLoading(true);
-    const { error } = await supabase.from('pools').insert({
+    const { data: newPool, error } = await supabase.from('pools').insert({
       lottery_type_id: form.lottery_type_id,
       title: form.title,
       description: form.description || null,
@@ -98,7 +98,8 @@ const Admin = () => {
       draw_date: form.draw_date || null,
       unlimited_quotas: form.unlimited_quotas,
       total_quotas: form.unlimited_quotas ? 999999 : totalQuotasVal,
-    });
+    }).select().single();
+    
     setFormLoading(false);
     if (error) {
       console.error('Create pool error:', error);
@@ -106,15 +107,28 @@ const Admin = () => {
     } else {
       toast({ title: 'Bolão criado!' });
       // Trigger WhatsApp notification for new pool
-      try {
-        const { data: session } = await supabase.auth.getSession();
-        const token = session?.session?.access_token;
-        fetch(`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/whatsapp-send`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ type: 'new_pool', data: { id: data.id, title: form.title, price: parseFloat(form.price_per_quota), prize: parseFloat(form.prize_amount), draw_date: form.draw_date } }),
-        }).catch(console.error);
-      } catch {}
+      if (newPool) {
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          const token = session?.session?.access_token;
+          fetch(`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/whatsapp-send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ 
+              type: 'new_pool', 
+              data: { 
+                id: newPool.id, 
+                title: form.title, 
+                price: parseFloat(form.price_per_quota), 
+                prize: parseFloat(form.prize_amount), 
+                draw_date: form.draw_date 
+              } 
+            }),
+          }).catch(console.error);
+        } catch (err) {
+          console.error('WhatsApp notification error:', err);
+        }
+      }
       setCreateOpen(false);
       setForm({ lottery_type_id: '', title: '', description: '', price_per_quota: '', prize_amount: '', draw_date: '', unlimited_quotas: false, total_quotas: '100' });
       fetchData();

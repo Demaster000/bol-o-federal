@@ -33,8 +33,10 @@ function normalizeIntervalMinutes(interval: number | null | undefined): number {
 
 function shouldRunScheduledBroadcast(intervalMinutes: number, now = new Date()): boolean {
   const interval = normalizeIntervalMinutes(intervalMinutes);
-  const totalMinutesUtc = now.getUTCHours() * 60 + now.getUTCMinutes();
-  return totalMinutesUtc % interval === 0;
+  // Usamos o timestamp em minutos para garantir que o intervalo seja respeitado
+  // independente do horário de início do dia.
+  const totalMinutes = Math.floor(now.getTime() / (1000 * 60));
+  return totalMinutes % interval === 0;
 }
 
 async function getSettings(supabaseAdmin: any): Promise<WhatsAppSettings | null> {
