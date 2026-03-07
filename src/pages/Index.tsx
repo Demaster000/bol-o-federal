@@ -13,24 +13,34 @@ import BuyQuotaDialog from '@/components/BuyQuotaDialog';
 type PoolWithType = Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
 
 const Index = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [pools, setPools] = useState<PoolWithType[]>([]);
   const [recentWinnings, setRecentWinnings] = useState<PoolWithType[]>([]);
   const [selectedPool, setSelectedPool] = useState<PoolWithType | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Check for pool parameter in URL
+  // Check for pool parameter in URL and handle auto-open
   useEffect(() => {
+    // Only proceed if auth is not loading and we have pools
+    if (authLoading || pools.length === 0) return;
+
     const params = new URLSearchParams(window.location.search);
     const poolId = params.get('pool');
-    if (poolId && pools.length > 0) {
+    
+    if (poolId) {
       const pool = pools.find(p => p.id === poolId);
       if (pool) {
+        if (!user) {
+          // If not logged in, redirect to login with the current pool as redirect param
+          window.location.href = `/login?redirect=/?pool=${poolId}`;
+          return;
+        }
+        // If logged in, open the dialog
         setSelectedPool(pool as PoolWithType);
         setDialogOpen(true);
       }
     }
-  }, [pools]);
+  }, [pools, user, authLoading]);
 
   const fetchPools = async () => {
     const { data } = await supabase
@@ -40,17 +50,6 @@ const Index = () => {
       .order('created_at', { ascending: false });
     if (data) {
       setPools(data as PoolWithType[]);
-      
-      // Auto-open pool if specified in URL
-      const params = new URLSearchParams(window.location.search);
-      const poolId = params.get('pool');
-      if (poolId && user) {
-        const pool = (data as PoolWithType[]).find(p => p.id === poolId);
-        if (pool) {
-          setSelectedPool(pool);
-          setDialogOpen(true);
-        }
-      }
     }
 
     const { data: winnings } = await supabase
