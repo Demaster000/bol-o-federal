@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Trophy, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
+import logo from '@/assets/logo.png';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -40,11 +41,8 @@ const Login = () => {
       <div className="absolute inset-0 bg-gradient-hero opacity-50" />
       <div className="relative w-full max-w-md space-y-8">
         <div className="text-center">
-          <Link to="/" className="inline-flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-green">
-              <Trophy className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-display text-2xl font-bold text-gradient-gold">BolãoVIP</span>
+          <Link to="/" className="inline-flex items-center">
+            <img src={logo} alt="Sorte Compartilhada" className="h-20 w-auto" />
           </Link>
           <h1 className="mt-6 font-display text-2xl font-bold text-foreground">Bem-vindo de volta</h1>
           <p className="mt-1 text-sm text-muted-foreground">Entre para participar dos bolões</p>
