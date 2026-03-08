@@ -7,6 +7,7 @@ import { Tables } from '@/integrations/supabase/types';
 import { Ticket, Calendar, Trophy, Gift, Bell, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ClaimPrizeDialog from '@/components/ClaimPrizeDialog';
+import ReferralSection from '@/components/ReferralSection';
 
 type PurchaseWithPool = Tables<'pool_purchases'> & {
   pools: (Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null }) | null;
@@ -183,7 +184,10 @@ const Dashboard = () => {
           </div>
         )}
 
-        <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-6 sm:mb-8">
+        {/* Referral Section */}
+        <ReferralSection />
+
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-6 sm:mb-8 mt-6">
           Meus <span className="text-gradient-gold">Bolões</span>
         </h1>
 
