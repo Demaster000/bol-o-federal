@@ -333,24 +333,26 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto px-4 py-10">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="font-display text-3xl font-bold text-foreground">
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-10">
+        <div className="flex items-center justify-between mb-6 sm:mb-8 gap-3">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
             Painel <span className="text-gradient-gold">Admin</span>
           </h1>
-          <Button onClick={() => setCreateOpen(true)} className="bg-gradient-green hover:opacity-90 text-primary-foreground">
-            <Plus className="mr-1.5 h-4 w-4" /> Novo Bolão
+          <Button onClick={() => setCreateOpen(true)} size="sm" className="bg-gradient-green hover:opacity-90 text-primary-foreground shrink-0">
+            <Plus className="mr-1 h-4 w-4" /> <span className="hidden sm:inline">Novo Bolão</span><span className="sm:hidden">Novo</span>
           </Button>
         </div>
 
-        <Tabs defaultValue="pools" className="space-y-6">
-          <TabsList className="bg-muted flex-wrap">
-            <TabsTrigger value="pools">Bolões</TabsTrigger>
-            <TabsTrigger value="claims"><DollarSign className="mr-1 h-3.5 w-3.5" /> Pagamentos</TabsTrigger>
-            <TabsTrigger value="lotteries">Modalidades</TabsTrigger>
-            <TabsTrigger value="pix-settings">PIX / Mercado Pago</TabsTrigger>
-            <TabsTrigger value="whatsapp"><MessageSquare className="mr-1 h-3.5 w-3.5" /> WhatsApp</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="pools" className="space-y-4 sm:space-y-6">
+          <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+            <TabsList className="bg-muted inline-flex w-auto min-w-full sm:min-w-0">
+              <TabsTrigger value="pools" className="text-xs sm:text-sm whitespace-nowrap">Bolões</TabsTrigger>
+              <TabsTrigger value="claims" className="text-xs sm:text-sm whitespace-nowrap"><DollarSign className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> Pagamentos</TabsTrigger>
+              <TabsTrigger value="lotteries" className="text-xs sm:text-sm whitespace-nowrap">Modalidades</TabsTrigger>
+              <TabsTrigger value="pix-settings" className="text-xs sm:text-sm whitespace-nowrap">PIX</TabsTrigger>
+              <TabsTrigger value="whatsapp" className="text-xs sm:text-sm whitespace-nowrap"><MessageSquare className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> WhatsApp</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="pools">
             <div className="grid gap-4">
