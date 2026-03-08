@@ -246,6 +246,8 @@ const Index = () => {
         onSuccess={fetchPools}
       />
 
+      <WhatsAppPopup />
+
       {/* Footer */}
       <footer className="border-t border-border bg-card/30 py-8 text-center text-sm text-muted-foreground">
         <div className="container mx-auto px-4">
