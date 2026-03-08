@@ -213,12 +213,12 @@ const Index = () => {
       )}
 
       {/* Available Pools */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="mb-10 text-center">
-          <h2 className="font-display text-3xl font-bold text-foreground">
+      <section className="container mx-auto px-4 py-10 sm:py-16">
+        <div className="mb-6 sm:mb-10 text-center">
+          <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
             Bolões <span className="text-gradient-gold">Disponíveis</span>
           </h2>
-          <p className="mt-2 text-muted-foreground">Escolha seu bolão e garanta suas cotas</p>
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">Escolha seu bolão e garanta suas cotas</p>
         </div>
 
         {pools.length > 0 ? (
