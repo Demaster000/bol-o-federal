@@ -146,7 +146,7 @@ const Admin = () => {
   };
 
   const resetForm = () => {
-    setForm({ lottery_type_id: '', title: '', description: '', price_per_quota: '', prize_amount: '', draw_date: '', unlimited_quotas: false, total_quotas: '100' });
+    setForm({ lottery_type_id: '', title: '', description: DEFAULT_DESCRIPTION, price_per_quota: '', prize_amount: '', draw_date: '', unlimited_quotas: false, total_quotas: '100' });
     setIsEditing(false);
   };
 
