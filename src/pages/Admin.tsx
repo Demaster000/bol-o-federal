@@ -298,12 +298,14 @@ const Admin = () => {
     }
 
     setFormLoading(true);
+    // Append BRT timezone offset (-03:00) so DB stores correct UTC
+    const drawDateUTC = form.draw_date ? `${form.draw_date}:00-03:00` : null;
     const { error } = await supabase.from('pools').update({
       title: form.title,
       description: form.description || null,
       price_per_quota: priceVal,
       prize_amount: prizeVal,
-      draw_date: form.draw_date || null,
+      draw_date: drawDateUTC,
       unlimited_quotas: form.unlimited_quotas,
       total_quotas: form.unlimited_quotas ? 999999 : totalQuotasVal,
     }).eq('id', selectedPool.id);
