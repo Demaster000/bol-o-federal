@@ -25,17 +25,21 @@ const Login = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Redirect if already logged in
-  useEffect(() => {
-    if (!authLoading && user) {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [user, authLoading, navigate]);
-
   // Get redirect URL and referral code from query params
   const redirectUrl = searchParams.get('redirect') || '/';
   const poolId = searchParams.get('pool');
   const refCode = searchParams.get('ref');
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (poolId) {
+        navigate(`/?pool=${poolId}`, { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [user, authLoading, navigate, poolId]);
 
   // Build the redirect URL preserving the pool parameter
   const getRedirectUrl = () => {
