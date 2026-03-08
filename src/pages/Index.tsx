@@ -95,41 +95,41 @@ const Index = () => {
           <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-secondary/15 blur-3xl animate-pulse-glow" style={{ animationDelay: '1s' }} />
         </div>
 
-        <div className="container relative mx-auto px-4 py-24 text-center">
+        <div className="container relative mx-auto px-4 py-12 sm:py-24 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-4 py-1.5 text-sm text-muted-foreground">
-              <Star className="h-3.5 w-3.5 text-secondary" />
+            <div className="mb-4 sm:mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm text-muted-foreground">
+              <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-secondary" />
               A melhor plataforma de bolões do Brasil
             </div>
-            <h1 className="font-display text-5xl font-bold leading-tight md:text-7xl">
+            <h1 className="font-display text-3xl sm:text-5xl md:text-7xl font-bold leading-tight">
               Sua sorte começa
               <br />
               <span className="text-gradient-gold">no Sorte Compartilhada</span>
             </h1>
-            <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
+            <p className="mx-auto mt-4 sm:mt-6 max-w-xl text-sm sm:text-lg text-muted-foreground px-2">
               Participe de bolões da Loteria Federal com cotas acessíveis. 
               Mais pessoas, mais chances de ganhar!
             </p>
-            <div className="mt-8 flex justify-center gap-4">
+            <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 px-4 sm:px-0">
               {user ? (
                 <Link to="/dashboard">
-                  <Button size="lg" className="bg-gradient-green hover:opacity-90 text-primary-foreground font-display font-semibold px-8">
+                  <Button size="lg" className="w-full sm:w-auto bg-gradient-green hover:opacity-90 text-primary-foreground font-display font-semibold px-8">
                     Meus Bolões
                   </Button>
                 </Link>
               ) : (
                 <>
-                  <Link to="/login?mode=register">
-                    <Button size="lg" className="bg-gradient-green hover:opacity-90 text-primary-foreground font-display font-semibold px-8">
+                  <Link to="/login?mode=register" className="w-full sm:w-auto">
+                    <Button size="lg" className="w-full bg-gradient-green hover:opacity-90 text-primary-foreground font-display font-semibold px-8">
                       Começar Agora
                     </Button>
                   </Link>
-                  <Link to="/login">
-                    <Button size="lg" variant="outline" className="font-display font-semibold px-8 border-border text-foreground hover:bg-muted">
+                  <Link to="/login" className="w-full sm:w-auto">
+                    <Button size="lg" variant="outline" className="w-full font-display font-semibold px-8 border-border text-foreground hover:bg-muted">
                       Já tenho conta
                     </Button>
                   </Link>
