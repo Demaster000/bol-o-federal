@@ -13,31 +13,54 @@ import WhatsAppPopup from '@/components/WhatsAppPopup';
 
 type PoolWithType = Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
 
+const usePerPage = () => {
+  const [perPage, setPerPage] = useState(1);
+  useEffect(() => {
+    const update = () => setPerPage(window.innerWidth >= 1024 ? 3 : window.innerWidth >= 640 ? 2 : 1);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+  return perPage;
+};
+
 const WinningsCarousel = ({ winnings }: { winnings: PoolWithType[] }) => {
-  const [current, setCurrent] = useState(0);
+  const perPage = usePerPage();
+  const [page, setPage] = useState(0);
   const [direction, setDirection] = useState(1);
+
+  const totalPages = Math.ceil(winnings.length / perPage);
 
   const next = useCallback(() => {
     setDirection(1);
-    setCurrent(prev => (prev + 1) % winnings.length);
-  }, [winnings.length]);
+    setPage(prev => (prev + 1) % totalPages);
+  }, [totalPages]);
 
   const prev = useCallback(() => {
     setDirection(-1);
-    setCurrent(prev => (prev - 1 + winnings.length) % winnings.length);
-  }, [winnings.length]);
+    setPage(prev => (prev - 1 + totalPages) % totalPages);
+  }, [totalPages]);
 
   useEffect(() => {
+    if (totalPages <= 1) return;
     const timer = setInterval(next, 5000);
     return () => clearInterval(timer);
-  }, [next]);
+  }, [next, totalPages]);
 
-  const winning = winnings[current];
+  // Reset page when perPage changes
+  useEffect(() => { setPage(0); }, [perPage]);
+
+  const visibleItems = winnings.slice(page * perPage, page * perPage + perPage);
+  // If last page has fewer items, pad from beginning
+  if (visibleItems.length < perPage && winnings.length >= perPage) {
+    const remaining = perPage - visibleItems.length;
+    visibleItems.push(...winnings.slice(0, remaining));
+  }
 
   const variants = {
-    enter: (d: number) => ({ x: d > 0 ? 300 : -300, opacity: 0 }),
+    enter: (d: number) => ({ x: d > 0 ? 200 : -200, opacity: 0 }),
     center: { x: 0, opacity: 1 },
-    exit: (d: number) => ({ x: d > 0 ? -300 : 300, opacity: 0 }),
+    exit: (d: number) => ({ x: d > 0 ? -200 : 200, opacity: 0 }),
   };
 
   return (
@@ -50,8 +73,8 @@ const WinningsCarousel = ({ winnings }: { winnings: PoolWithType[] }) => {
           <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">Confira os prêmios distribuídos nos últimos bolões</p>
         </div>
 
-        <div className="relative max-w-lg mx-auto">
-          {winnings.length > 1 && (
+        <div className="relative max-w-5xl mx-auto">
+          {totalPages > 1 && (
             <>
               <button
                 onClick={prev}
@@ -71,44 +94,51 @@ const WinningsCarousel = ({ winnings }: { winnings: PoolWithType[] }) => {
           <div className="overflow-hidden relative min-h-[220px] sm:min-h-[240px]">
             <AnimatePresence custom={direction} mode="wait">
               <motion.div
-                key={winning.id}
+                key={page}
                 custom={direction}
                 variants={variants}
                 initial="enter"
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.35, ease: 'easeInOut' }}
-                className="rounded-2xl border border-primary/20 bg-card p-5 sm:p-8 shadow-lg relative overflow-hidden"
+                className={`grid gap-4 sm:gap-6 ${perPage === 3 ? 'grid-cols-3' : perPage === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}
               >
-                <div className="absolute top-0 right-0 p-4 opacity-10">
-                  <Trophy className="h-14 w-14 sm:h-20 sm:w-20 text-primary" />
-                </div>
-                <div className="relative z-10">
-                  <div className="mb-3 inline-block rounded-full bg-primary/10 px-3 py-1 text-[10px] sm:text-xs font-bold text-primary uppercase tracking-wider">
-                    {winning.lottery_types?.name}
+                {visibleItems.map((winning) => (
+                  <div
+                    key={winning.id}
+                    className="rounded-2xl border border-primary/20 bg-card p-5 sm:p-6 shadow-lg relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                      <Trophy className="h-12 w-12 sm:h-16 sm:w-16 text-primary" />
+                    </div>
+                    <div className="relative z-10">
+                      <div className="mb-3 inline-block rounded-full bg-primary/10 px-3 py-1 text-[10px] sm:text-xs font-bold text-primary uppercase tracking-wider">
+                        {winning.lottery_types?.name}
+                      </div>
+                      <h3 className="font-display text-base sm:text-lg font-bold text-foreground mb-1">{winning.title}</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-3">
+                        Sorteio em {winning.draw_date ? new Date(winning.draw_date).toLocaleDateString('pt-BR') : '—'}
+                      </p>
+                      <div className="pt-3 border-t border-border">
+                        <span className="text-xs text-muted-foreground block mb-1">Prêmio Total</span>
+                        <p className="font-display text-xl sm:text-2xl font-bold text-gradient-gold">
+                          R$ {Number(winning.prize_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="font-display text-lg sm:text-xl font-bold text-foreground mb-1">{winning.title}</h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-4">
-                    Sorteio em {winning.draw_date ? new Date(winning.draw_date).toLocaleDateString('pt-BR') : '—'}
-                  </p>
-                  <div className="pt-4 border-t border-border">
-                    <span className="text-xs text-muted-foreground block mb-1">Prêmio Total</span>
-                    <p className="font-display text-2xl sm:text-3xl font-bold text-gradient-gold">
-                      R$ {Number(winning.prize_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                </div>
+                ))}
               </motion.div>
             </AnimatePresence>
           </div>
 
-          {winnings.length > 1 && (
+          {totalPages > 1 && (
             <div className="flex justify-center gap-2 mt-4">
-              {winnings.map((_, i) => (
+              {Array.from({ length: totalPages }).map((_, i) => (
                 <button
                   key={i}
-                  onClick={() => { setDirection(i > current ? 1 : -1); setCurrent(i); }}
-                  className={`h-2 rounded-full transition-all duration-300 ${i === current ? 'w-6 bg-primary' : 'w-2 bg-muted-foreground/30'}`}
+                  onClick={() => { setDirection(i > page ? 1 : -1); setPage(i); }}
+                  className={`h-2 rounded-full transition-all duration-300 ${i === page ? 'w-6 bg-primary' : 'w-2 bg-muted-foreground/30'}`}
                 />
               ))}
             </div>
