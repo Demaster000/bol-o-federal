@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
 import PoolCard from '@/components/PoolCard';
 import BuyQuotaDialog from '@/components/BuyQuotaDialog';
+import WhatsAppPopup from '@/components/WhatsAppPopup';
 
 type PoolWithType = Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
 
