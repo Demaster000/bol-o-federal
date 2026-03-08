@@ -324,13 +324,22 @@ const Admin = () => {
 
   const handleOpenEditDialog = (pool: PoolWithType) => {
     setSelectedPool(pool);
+    // Convert stored UTC draw_date to BRT for datetime-local input
+    let drawDateBRT = '';
+    if (pool.draw_date) {
+      const d = new Date(pool.draw_date);
+      const brt = new Date(d.getTime() + 0); // already UTC
+      // Format as local BRT: YYYY-MM-DDTHH:MM
+      const formatted = brt.toLocaleString('sv-SE', { timeZone: 'America/Sao_Paulo' }).replace(' ', 'T').slice(0, 16);
+      drawDateBRT = formatted;
+    }
     setForm({
       lottery_type_id: pool.lottery_type_id,
       title: pool.title,
       description: pool.description || '',
       price_per_quota: String(pool.price_per_quota),
       prize_amount: String(pool.prize_amount || ''),
-      draw_date: pool.draw_date || '',
+      draw_date: drawDateBRT,
       unlimited_quotas: pool.unlimited_quotas || false,
       total_quotas: String(pool.total_quotas || '100'),
     });
