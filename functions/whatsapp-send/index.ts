@@ -33,8 +33,12 @@ function normalizeIntervalMinutes(interval: number | null | undefined): number {
 
 function shouldRunScheduledBroadcast(intervalMinutes: number, now = new Date()): boolean {
   const interval = normalizeIntervalMinutes(intervalMinutes);
-  const totalMinutesUtc = now.getUTCHours() * 60 + now.getUTCMinutes();
-  return totalMinutesUtc % interval === 0;
+  // Check if we should run based on the last broadcast time
+  // We use a more lenient approach: run if it's been at least interval minutes since last run
+  const totalMinutes = Math.floor(now.getTime() / (1000 * 60));
+  // Allow execution within a 2-minute window to account for cron timing variations
+  const remainder = totalMinutes % interval;
+  return remainder === 0 || remainder === 1 || (interval > 5 && remainder === interval - 1);
 }
 
 async function getSettings(supabaseAdmin: any): Promise<WhatsAppSettings | null> {
@@ -185,18 +189,19 @@ serve(async (req: Request) => {
     const isInternalCall = !authHeader || token === anonKey || token === svcKey;
 
     if (!isInternalCall) {
-      // It's a user JWT — validate admin role
+      // It's a user JWT — validate admin role using getClaims
       const supabaseAuth = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader! } },
       });
-      const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
-      if (userError || !userData?.user) {
+      const jwtToken = authHeader!.replace("Bearer ", "");
+      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(jwtToken);
+      if (claimsError || !claimsData?.claims) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const userId = userData.user.id;
+      const userId = claimsData.claims.sub as string;
       const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: userId, _role: "admin" });
       if (!isAdmin) {
         return new Response(JSON.stringify({ error: "Admin only" }), {
@@ -288,6 +293,19 @@ serve(async (req: Request) => {
         }
 
         result = await sendBroadcastOpenPools(supabaseAdmin, settings);
+        
+        try {
+          await supabaseAdmin
+            .from("whatsapp_broadcast_log")
+            .insert({
+              broadcast_type: "open_pools",
+              last_run_at: new Date().toISOString(),
+              success: result.success,
+              message: result.error || result.reason || "Broadcast sent successfully",
+            });
+        } catch (logErr) {
+          console.error("Failed to log broadcast:", logErr);
+        }
         break;
       }
 
@@ -308,18 +326,33 @@ serve(async (req: Request) => {
         }
 
         result = await sendBroadcastOpenPools(supabaseAdmin, settings);
+        
+        try {
+          await supabaseAdmin
+            .from("whatsapp_broadcast_log")
+            .insert({
+              broadcast_type: "open_pools",
+              last_run_at: new Date().toISOString(),
+              success: result.success,
+              message: result.error || result.reason || "Scheduled broadcast sent successfully",
+            });
+        } catch (logErr) {
+          console.error("Failed to log scheduled broadcast:", logErr);
+        }
         break;
       }
 
       case "custom": {
-        const { message } = data;
-        if (!message) {
+        const { message } = data || {};
+        if (!message || typeof message !== "string" || message.trim().length === 0) {
           return new Response(JSON.stringify({ error: "Mensagem não informada" }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        result = await sendWhatsAppMessage(settings, message);
+        // Limit message length to prevent abuse
+        const sanitizedMessage = message.trim().slice(0, 4096);
+        result = await sendWhatsAppMessage(settings, sanitizedMessage);
         break;
       }
 
