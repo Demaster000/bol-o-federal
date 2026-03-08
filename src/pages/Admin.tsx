@@ -475,6 +475,7 @@ const Admin = () => {
     }
   };
 
+  const statusLabel: Record<string, string> = {
     open: 'Aberto', closed: 'Fechado', drawn: 'Sorteado', paid: 'Pago',
   };
 
