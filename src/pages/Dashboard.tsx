@@ -49,7 +49,13 @@ const Dashboard = () => {
     if (claimsRes.data) {
       const map = new Map<string, { status: string; reason?: string }>();
       claimsRes.data.forEach((c: any) => {
-        if (c.purchase_id) map.set(c.purchase_id, { status: c.status, reason: c.rejection_reason });
+        if (c.purchase_id) {
+          const existing = map.get(c.purchase_id);
+          // Keep the most recent non-rejected claim, or the rejected one if no other exists
+          if (!existing || existing.status === 'rejected') {
+            map.set(c.purchase_id, { status: c.status, reason: c.rejection_reason });
+          }
+        }
       });
       setClaimedPurchases(map);
     }
