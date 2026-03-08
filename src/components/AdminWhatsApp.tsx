@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { MessageSquare, Send, TestTube, Save, Eye, EyeOff } from 'lucide-react';
+import { MessageSquare, Send, TestTube, Save, Eye, EyeOff, Gift } from 'lucide-react';
 
 interface WhatsAppSettings {
   id: string;

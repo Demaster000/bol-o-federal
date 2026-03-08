@@ -319,6 +319,24 @@ serve(async (req: Request) => {
         break;
       }
 
+      case "referral_broadcast": {
+        const siteUrl = (settings.site_url || "").replace(/\/$/, "");
+        const registerLink = siteUrl ? `${siteUrl}/login?mode=register` : "Acesse o site";
+
+        const message = `🎁 *INDIQUE E GANHE!* 🎁\n\n` +
+          `Você sabia que pode ganhar *cotas GRÁTIS* no Sorte Compartilhada? 🍀\n\n` +
+          `📌 *Como funciona:*\n` +
+          `1️⃣ Cadastre-se na plataforma\n` +
+          `2️⃣ Compartilhe seu link de indicação com amigos\n` +
+          `3️⃣ Quando seu indicado *comprar cotas*, você ganha *1 cota grátis* do mesmo sorteio!\n\n` +
+          `💰 *Sem limite de indicações!* Quanto mais amigos, mais cotas grátis você ganha!\n\n` +
+          `👉 Cadastre-se agora: ${registerLink}\n\n` +
+          `✅ Indique, compartilhe e aumente suas chances de ganhar! 🚀`;
+
+        result = await sendWhatsAppMessage(settings, message);
+        break;
+      }
+
       case "scheduled_broadcast": {
         if (!settings.broadcast_open_pools) {
           return new Response(JSON.stringify({ success: true, reason: "Divulgação periódica desabilitada" }), {
