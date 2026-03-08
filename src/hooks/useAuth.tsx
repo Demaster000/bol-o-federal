@@ -69,18 +69,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // After login, create referral relationship if referral code exists
       if (!signInError && referralCode) {
         try {
-          // Find the referrer by code
-          const { data: referrer } = await supabase
-            .from('profiles')
-            .select('user_id')
-            .eq('referral_code', referralCode.toUpperCase())
-            .single();
+          // Find the referrer by secure function
+          const { data: referrerUserId } = await supabase
+            .rpc('lookup_referral_code', { _code: referralCode });
           
-          if (referrer) {
+          if (referrerUserId) {
             const { data: currentUser } = await supabase.auth.getUser();
-            if (currentUser?.user && referrer.user_id !== currentUser.user.id) {
+            if (currentUser?.user && referrerUserId !== currentUser.user.id) {
               await supabase.from('referrals').insert({
-                referrer_id: referrer.user_id,
+                referrer_id: referrerUserId,
                 referred_id: currentUser.user.id,
               });
             }

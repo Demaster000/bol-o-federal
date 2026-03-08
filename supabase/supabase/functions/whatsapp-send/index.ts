@@ -175,21 +175,33 @@ serve(async (req: Request) => {
 
     const { type, data } = await req.json();
 
-    // Auth check - only admins or internal calls
+    // Auth check - only admins or service role (cron) calls
     const authHeader = req.headers.get("Authorization");
-    if (authHeader?.startsWith("Bearer ")) {
+    const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const token = authHeader?.replace("Bearer ", "") || "";
+    const isInternalCall = token === svcKey;
+
+    if (!isInternalCall && !authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!isInternalCall) {
       const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
       const supabaseAuth = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
+        global: { headers: { Authorization: authHeader! } },
       });
-      const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
-      if (userError || !userData?.user) {
+      const jwtToken = authHeader!.replace("Bearer ", "");
+      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(jwtToken);
+      if (claimsError || !claimsData?.claims) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const userId = userData.user.id;
+      const userId = claimsData.claims.sub as string;
       const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: userId, _role: "admin" });
       if (!isAdmin) {
         return new Response(JSON.stringify({ error: "Admin only" }), {
@@ -197,8 +209,6 @@ serve(async (req: Request) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-    } else {
-      // Internal call (from other edge functions or cron) - allow if no auth header
     }
 
     const settings = await getSettings(supabaseAdmin);

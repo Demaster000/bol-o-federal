@@ -482,6 +482,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      lookup_referral_code: { Args: { _code: string }; Returns: string }
       trigger_whatsapp_broadcast: { Args: never; Returns: undefined }
     }
     Enums: {
