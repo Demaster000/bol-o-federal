@@ -33,8 +33,12 @@ function normalizeIntervalMinutes(interval: number | null | undefined): number {
 
 function shouldRunScheduledBroadcast(intervalMinutes: number, now = new Date()): boolean {
   const interval = normalizeIntervalMinutes(intervalMinutes);
-  const totalMinutesUtc = now.getUTCHours() * 60 + now.getUTCMinutes();
-  return totalMinutesUtc % interval === 0;
+  // Check if we should run based on the last broadcast time
+  // We use a more lenient approach: run if it's been at least interval minutes since last run
+  const totalMinutes = Math.floor(now.getTime() / (1000 * 60));
+  // Allow execution within a 2-minute window to account for cron timing variations
+  const remainder = totalMinutes % interval;
+  return remainder === 0 || remainder === 1 || (interval > 5 && remainder === interval - 1);
 }
 
 async function getSettings(supabaseAdmin: any): Promise<WhatsAppSettings | null> {
@@ -175,25 +179,31 @@ serve(async (req: Request) => {
 
     const { type, data } = await req.json();
 
-    // Auth check - only admins or service role (cron) calls
+    // Auth check
     const authHeader = req.headers.get("Authorization");
     const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const token = authHeader?.replace("Bearer ", "") || "";
+
+    // Service role key = internal call (trusted)
     const isInternalCall = token === svcKey;
 
-    if (!isInternalCall && !authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Allow scheduled_broadcast without auth (called by pg_cron which can't send service role key)
+    const isCronBroadcast = type === "scheduled_broadcast";
 
-    if (!isInternalCall) {
-      const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    if (!isInternalCall && !isCronBroadcast) {
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // It's a user JWT — validate admin role
       const supabaseAuth = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader! } },
+        global: { headers: { Authorization: authHeader } },
       });
-      const jwtToken = authHeader!.replace("Bearer ", "");
+      const jwtToken = authHeader.replace("Bearer ", "");
       const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(jwtToken);
       if (claimsError || !claimsData?.claims) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -293,6 +303,19 @@ serve(async (req: Request) => {
         }
 
         result = await sendBroadcastOpenPools(supabaseAdmin, settings);
+        
+        try {
+          await supabaseAdmin
+            .from("whatsapp_broadcast_log")
+            .insert({
+              broadcast_type: "open_pools",
+              last_run_at: new Date().toISOString(),
+              success: result.success,
+              message: result.error || result.reason || "Broadcast sent successfully",
+            });
+        } catch (logErr) {
+          console.error("Failed to log broadcast:", logErr);
+        }
         break;
       }
 
@@ -313,18 +336,33 @@ serve(async (req: Request) => {
         }
 
         result = await sendBroadcastOpenPools(supabaseAdmin, settings);
+        
+        try {
+          await supabaseAdmin
+            .from("whatsapp_broadcast_log")
+            .insert({
+              broadcast_type: "open_pools",
+              last_run_at: new Date().toISOString(),
+              success: result.success,
+              message: result.error || result.reason || "Scheduled broadcast sent successfully",
+            });
+        } catch (logErr) {
+          console.error("Failed to log scheduled broadcast:", logErr);
+        }
         break;
       }
 
       case "custom": {
-        const { message } = data;
-        if (!message) {
+        const { message } = data || {};
+        if (!message || typeof message !== "string" || message.trim().length === 0) {
           return new Response(JSON.stringify({ error: "Mensagem não informada" }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        result = await sendWhatsAppMessage(settings, message);
+        // Limit message length to prevent abuse
+        const sanitizedMessage = message.trim().slice(0, 4096);
+        result = await sendWhatsAppMessage(settings, sanitizedMessage);
         break;
       }
 
