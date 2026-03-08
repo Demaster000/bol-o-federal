@@ -299,8 +299,6 @@ const Index = () => {
       {/* Social Proof - Recent Winnings Carousel */}
       {recentWinnings.length > 0 && <WinningsCarousel winnings={recentWinnings} />}
 
-      {/* Testimonials */}
-      <TestimonialsSection />
 
       {/* Available Pools */}
       <section className="container mx-auto px-4 py-10 sm:py-16">
