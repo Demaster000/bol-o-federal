@@ -254,7 +254,7 @@ serve(async (req: Request) => {
         
         let deadlineCotas = "A definir";
         if (draw_date) {
-          const drawDate = new Date(draw_date);
+          const drawDate = parseDateAsBRT(draw_date);
           const minus5h = new Date(drawDate.getTime() - 5 * 60 * 60 * 1000);
           deadlineCotas = formatDateTimeBR(minus5h);
         }
