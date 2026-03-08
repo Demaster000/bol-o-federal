@@ -11,9 +11,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trophy, Users, Ticket, Eye, DollarSign, Trash2, MessageSquare } from 'lucide-react';
+import { Plus, Pencil, Trophy, Users, Ticket, Eye, DollarSign, Trash2, MessageSquare, Download } from 'lucide-react';
 import AdminClaims from '@/components/AdminClaims';
 import AdminWhatsApp from '@/components/AdminWhatsApp';
 import { Navigate } from 'react-router-dom';
@@ -59,6 +60,36 @@ const Admin = () => {
   const [resultText, setResultText] = useState('');
   const [prizeAmount, setPrizeAmount] = useState('');
   const [formLoading, setFormLoading] = useState(false);
+  const [exportFields, setExportFields] = useState({ name: true, phone: true, quotas: true, paid: true, date: false });
+
+  const exportParticipants = () => {
+    if (poolPurchases.length === 0) return;
+    const headers: string[] = [];
+    if (exportFields.name) headers.push('Nome');
+    if (exportFields.phone) headers.push('WhatsApp');
+    if (exportFields.quotas) headers.push('Cotas');
+    if (exportFields.paid) headers.push('Total Pago');
+    if (exportFields.date) headers.push('Data');
+
+    const rows = poolPurchases.map(p => {
+      const cols: string[] = [];
+      if (exportFields.name) cols.push(p.profile_name ?? 'Usuário');
+      if (exportFields.phone) cols.push(p.profile_phone ?? '—');
+      if (exportFields.quotas) cols.push(String(p.quantity));
+      if (exportFields.paid) cols.push(`R$ ${p.total_paid.toFixed(2)}`);
+      if (exportFields.date) cols.push(new Date(p.created_at!).toLocaleDateString('pt-BR'));
+      return cols.join(',');
+    });
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `participantes_${selectedPool?.title?.replace(/\s+/g, '_') ?? 'bolao'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const fetchData = async () => {
     const [typesRes, poolsRes] = await Promise.all([
@@ -354,15 +385,17 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="pools" className="space-y-4 sm:space-y-6">
-          <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
-            <TabsList className="bg-muted inline-flex w-auto min-w-full sm:min-w-0">
-              <TabsTrigger value="pools" className="text-xs sm:text-sm whitespace-nowrap">Bolões</TabsTrigger>
-              <TabsTrigger value="claims" className="text-xs sm:text-sm whitespace-nowrap"><DollarSign className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> Pagamentos</TabsTrigger>
-              <TabsTrigger value="lotteries" className="text-xs sm:text-sm whitespace-nowrap">Modalidades</TabsTrigger>
-              <TabsTrigger value="pix-settings" className="text-xs sm:text-sm whitespace-nowrap">PIX</TabsTrigger>
-              <TabsTrigger value="whatsapp" className="text-xs sm:text-sm whitespace-nowrap"><MessageSquare className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> WhatsApp</TabsTrigger>
-            </TabsList>
-          </div>
+          <TabsList className="bg-muted grid grid-cols-3 sm:grid-cols-5 h-auto gap-1 p-1">
+            <TabsTrigger value="pools" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">Bolões</TabsTrigger>
+            <TabsTrigger value="claims" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">
+              <DollarSign className="mr-1 h-3 w-3 hidden sm:inline" />Pagamentos
+            </TabsTrigger>
+            <TabsTrigger value="lotteries" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">Modalidades</TabsTrigger>
+            <TabsTrigger value="pix-settings" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">PIX</TabsTrigger>
+            <TabsTrigger value="whatsapp" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">
+              <MessageSquare className="mr-1 h-3 w-3 hidden sm:inline" />WhatsApp
+            </TabsTrigger>
+          </TabsList>
 
           <TabsContent value="pools">
             <div className="grid gap-4">
@@ -624,43 +657,74 @@ const Admin = () => {
             <DialogDescription className="text-muted-foreground text-xs sm:text-sm">Informações e participantes do bolão.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="rounded-lg bg-muted p-4 space-y-1">
-              <p className="font-display font-bold text-foreground">{selectedPool?.title}</p>
-              <p className="text-sm text-muted-foreground">
+            <div className="rounded-lg bg-muted p-3 sm:p-4 space-y-1">
+              <p className="font-display font-bold text-foreground text-sm sm:text-base">{selectedPool?.title}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {selectedPool?.sold_quotas ?? 0} cotas vendidas •
                 R$ {((selectedPool?.sold_quotas ?? 0) * (selectedPool?.price_per_quota ?? 0)).toFixed(2)} arrecadado
               </p>
               {selectedPool?.result && (
-                <p className="text-sm font-medium text-primary">
+                <p className="text-xs sm:text-sm font-medium text-primary">
                   Resultado: {(selectedPool.result as any).numbers}
                 </p>
               )}
             </div>
+
+            {/* Export section */}
+            {poolPurchases.length > 0 && (
+              <div className="rounded-lg border border-border p-3 space-y-3">
+                <p className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <Download className="h-3.5 w-3.5" /> Exportar Participantes
+                </p>
+                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                  {[
+                    { key: 'name' as const, label: 'Nome' },
+                    { key: 'phone' as const, label: 'WhatsApp' },
+                    { key: 'quotas' as const, label: 'Cotas' },
+                    { key: 'paid' as const, label: 'Valor Pago' },
+                    { key: 'date' as const, label: 'Data' },
+                  ].map(field => (
+                    <label key={field.key} className="flex items-center gap-1.5 cursor-pointer">
+                      <Checkbox
+                        checked={exportFields[field.key]}
+                        onCheckedChange={(v) => setExportFields(prev => ({ ...prev, [field.key]: v === true }))}
+                        className="h-3.5 w-3.5"
+                      />
+                      <span className="text-xs text-foreground">{field.label}</span>
+                    </label>
+                  ))}
+                </div>
+                <Button size="sm" variant="outline" className="w-full text-xs h-8" onClick={exportParticipants}>
+                  <Download className="mr-1 h-3 w-3" /> Exportar CSV
+                </Button>
+              </div>
+            )}
+
             <div>
-              <h4 className="font-display font-semibold text-foreground mb-2 flex items-center gap-1.5">
+              <h4 className="font-display font-semibold text-foreground mb-2 flex items-center gap-1.5 text-sm">
                 <Users className="h-4 w-4" /> Participantes ({poolPurchases.length})
               </h4>
               <div className="max-h-60 overflow-auto space-y-2">
                 {poolPurchases.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
+                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-border p-2 sm:p-3 text-xs sm:text-sm">
                     <div>
-                      <p className="font-medium text-foreground">{p.profile_name ?? 'Usuário'}</p>
+                      <p className="font-medium text-foreground text-xs sm:text-sm">{p.profile_name ?? 'Usuário'}</p>
                       <div className="flex flex-col">
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">
                           {new Date(p.created_at!).toLocaleDateString('pt-BR')}
                         </p>
                         {p.profile_phone && (
-                          <p className="text-xs text-primary font-medium flex items-center gap-1 mt-0.5">
+                          <p className="text-[10px] sm:text-xs text-primary font-medium flex items-center gap-1 mt-0.5">
                             <MessageSquare className="h-3 w-3" /> {p.profile_phone}
                           </p>
                         )}
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="flex items-center gap-1">
+                      <p className="flex items-center gap-1 text-xs">
                         <Ticket className="h-3 w-3" /> {p.quantity} cota(s)
                       </p>
-                      <p className="text-xs text-muted-foreground">R$ {p.total_paid.toFixed(2)}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">R$ {p.total_paid.toFixed(2)}</p>
                     </div>
                   </div>
                 ))}
