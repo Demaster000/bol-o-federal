@@ -142,7 +142,7 @@ const Index = () => {
 
       {/* Features */}
       <section className="border-t border-border bg-card/50">
-        <div className="container mx-auto grid gap-8 px-4 py-16 md:grid-cols-3">
+        <div className="container mx-auto grid gap-6 sm:gap-8 px-4 py-10 sm:py-16 grid-cols-1 sm:grid-cols-3">
           {[
             { icon: Shield, title: 'Seguro e Confiável', desc: 'Suas apostas protegidas com a melhor tecnologia.' },
             { icon: Zap, title: 'Rápido e Fácil', desc: 'Compre cotas em segundos e acompanhe seus bolões.' },
@@ -153,13 +153,15 @@ const Index = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 + i * 0.1 }}
-              className="flex flex-col items-center text-center gap-3"
+              className="flex flex-row sm:flex-col items-center sm:items-center text-left sm:text-center gap-3 sm:gap-3"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent">
-                <f.icon className="h-6 w-6 text-accent-foreground" />
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-accent shrink-0">
+                <f.icon className="h-5 w-5 sm:h-6 sm:w-6 text-accent-foreground" />
               </div>
-              <h3 className="font-display font-bold text-foreground">{f.title}</h3>
-              <p className="text-sm text-muted-foreground">{f.desc}</p>
+              <div>
+                <h3 className="font-display font-bold text-foreground text-sm sm:text-base">{f.title}</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">{f.desc}</p>
+              </div>
             </motion.div>
           ))}
         </div>
