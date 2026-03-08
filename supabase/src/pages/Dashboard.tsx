@@ -204,7 +204,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto px-4 py-10">
+      <div className="container mx-auto px-4 py-6 sm:py-10">
         {notifications.length > 0 && (
           <div className="mb-6 space-y-2">
             {notifications.filter(n => !n.read).map(n => (
@@ -212,21 +212,21 @@ const Dashboard = () => {
                 key={n.id}
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/10 p-3"
+                className="flex items-start sm:items-center gap-3 rounded-lg border border-primary/30 bg-primary/10 p-3 sm:p-4"
               >
-                <Bell className="h-4 w-4 text-primary shrink-0" />
-                <p className="text-sm text-foreground">{n.message}</p>
+                <Bell className="h-4 w-4 text-primary shrink-0 mt-0.5 sm:mt-0" />
+                <p className="text-xs sm:text-sm text-foreground">{n.message}</p>
               </motion.div>
             ))}
           </div>
         )}
 
-        <h1 className="font-display text-3xl font-bold text-foreground mb-8">
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-6 sm:mb-8">
           Meus <span className="text-gradient-gold">Bolões</span>
         </h1>
 
         {purchases.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 w-full sm:grid-cols-2 lg:grid-cols-3">
             {purchases.map((p, i) => {
               const lotteryName = p.pools?.lottery_types?.name ?? '';
               const gradient = LOTTERY_COLORS[lotteryName] || 'from-primary to-primary/80';
@@ -248,39 +248,39 @@ const Dashboard = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="rounded-xl border border-border bg-card overflow-hidden"
+                  className="rounded-xl border border-border bg-card overflow-hidden flex flex-col"
                 >
-                  <div className={`bg-gradient-to-r ${gradient} px-4 py-2 flex items-center justify-between`}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-primary-foreground/90">
+                  <div className={`bg-gradient-to-r ${gradient} px-4 py-2 flex items-center justify-between gap-2`}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xs font-bold uppercase tracking-wider text-primary-foreground/90 truncate">
                         {lotteryName}
                       </span>
                       {isUnlimited && (
-                        <span className="bg-white/20 text-[10px] px-2 py-0.5 rounded-full text-white font-bold">
+                        <span className="bg-white/20 text-[10px] px-2 py-0.5 rounded-full text-white font-bold whitespace-nowrap">
                           ILIMITADO
                         </span>
                       )}
                     </div>
-                    <span className="text-xs bg-background/20 px-2 py-0.5 rounded-full text-primary-foreground/80">
+                    <span className="text-xs bg-background/20 px-2 py-0.5 rounded-full text-primary-foreground/80 whitespace-nowrap">
                       {statusLabel[p.pools?.status ?? 'open']}
                     </span>
                   </div>
-                  <div className="p-4 space-y-3">
+                  <div className="p-4 space-y-3 flex-1 flex flex-col">
                     <div className="flex flex-col gap-1">
-                      <h3 className="font-display font-bold text-foreground">{p.pools?.title}</h3>
+                      <h3 className="font-display font-bold text-foreground text-sm sm:text-base break-words">{p.pools?.title}</h3>
                       {isUnlimited && isOpen && (
                         <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded border border-primary/20 w-fit">
                           MAIS CHANCES DE GANHARMOS
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs sm:text-sm text-muted-foreground">
                       <span className="flex items-center gap-1.5">
-                        <Ticket className="h-3.5 w-3.5" />
+                        <Ticket className="h-3.5 w-3.5 shrink-0" />
                         {p.quantity} cota(s)
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5" />
+                        <Calendar className="h-3.5 w-3.5 shrink-0" />
                         {p.pools?.draw_date
                           ? new Date(p.pools.draw_date).toLocaleDateString('pt-BR')
                           : 'A definir'}
@@ -290,13 +290,13 @@ const Dashboard = () => {
                     {isOpen && estimatePerQuota > 0 && (
                       <div className="rounded-lg bg-muted/50 border border-border p-3">
                         <div className="flex items-center gap-1.5 mb-1">
-                          <TrendingUp className="h-4 w-4 text-primary" />
+                          <TrendingUp className="h-4 w-4 text-primary shrink-0" />
                           <span className="text-xs text-muted-foreground">Estimativa atual por cota</span>
                         </div>
                         <p className="font-display font-bold text-sm text-primary">
                           R$ {estimatePerQuota.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </p>
-                        <p className="font-display font-bold text-foreground">
+                        <p className="font-display font-bold text-xs sm:text-sm text-foreground">
                           Suas {p.quantity} cota(s): <span className="text-gradient-gold">R$ {(estimatePerQuota * p.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                         </p>
                       </div>
@@ -305,7 +305,7 @@ const Dashboard = () => {
                     {isDrawn && p.pools?.result && (
                       <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 space-y-1">
                         <p className="text-xs text-muted-foreground">Números sorteados</p>
-                        <p className="text-sm font-semibold text-foreground">
+                        <p className="text-xs sm:text-sm font-semibold text-foreground break-words">
                           {(p.pools.result as any).numbers}
                         </p>
                       </div>
@@ -317,9 +317,9 @@ const Dashboard = () => {
                     </div>
 
                     {isDrawn && (
-                      <div className="rounded-lg bg-accent/20 border border-accent/30 p-3">
+                      <div className="rounded-lg bg-accent/20 border border-accent/30 p-3 space-y-2 mt-auto">
                         <div className="flex items-center gap-1.5 mb-1">
-                          <Gift className="h-4 w-4 text-primary" />
+                          <Gift className="h-4 w-4 text-primary shrink-0" />
                           <span className="text-xs text-muted-foreground">Seu prêmio estimado</span>
                         </div>
                         <p className="font-display font-bold text-lg text-gradient-gold">
@@ -327,7 +327,7 @@ const Dashboard = () => {
                         </p>
                         {alreadyClaimed ? (
                           <div className="space-y-2 mt-2">
-                            <p className="text-xs text-primary">✓ Solicitação de recebimento enviada</p>
+                            <p className="text-xs text-primary font-medium">✓ Solicitação de recebimento enviada</p>
                             <p className="text-xs text-muted-foreground">
                               Status: <span className={`font-semibold ${
                                 claimStatus === 'paid' ? 'text-green-400' :
@@ -355,7 +355,7 @@ const Dashboard = () => {
                                 )}
                                 <Button
                                   size="sm"
-                                  className="w-full mt-2 bg-gradient-green hover:opacity-90 text-primary-foreground text-xs h-7"
+                                  className="w-full mt-2 bg-gradient-green hover:opacity-90 text-primary-foreground text-xs h-8"
                                   onClick={() => claimId && handleRetryAfterRejection(claimId, p.id)}
                                 >
                                   <RotateCw className="mr-1 h-3 w-3" /> Tentar Novamente
@@ -366,7 +366,7 @@ const Dashboard = () => {
                         ) : (
                           <Button
                             size="sm"
-                            className="mt-2 bg-gradient-green hover:opacity-90 text-primary-foreground w-full"
+                            className="mt-2 bg-gradient-green hover:opacity-90 text-primary-foreground w-full text-xs sm:text-sm h-8 sm:h-9"
                             onClick={() =>
                               setClaimDialog({
                                 open: true,
@@ -390,10 +390,10 @@ const Dashboard = () => {
             })}
           </div>
         ) : (
-          <div className="rounded-xl border border-border bg-card p-12 text-center">
+          <div className="rounded-xl border border-border bg-card p-8 sm:p-12 text-center">
             <Trophy className="mx-auto h-12 w-12 text-muted-foreground/40" />
-            <p className="mt-4 text-lg text-muted-foreground">Você ainda não participou de nenhum bolão.</p>
-            <p className="text-sm text-muted-foreground/60">Explore os bolões disponíveis na página inicial!</p>
+            <p className="mt-4 text-base sm:text-lg text-muted-foreground">Você ainda não participou de nenhum bolão.</p>
+            <p className="text-xs sm:text-sm text-muted-foreground/60">Explore os bolões disponíveis na página inicial!</p>
           </div>
         )}
       </div>

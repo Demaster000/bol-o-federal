@@ -189,49 +189,49 @@ const AdminClaims = () => {
   return (
     <div className="space-y-4">
       {claims.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-12 text-center">
+        <div className="rounded-xl border border-border bg-card p-8 sm:p-12 text-center">
           <DollarSign className="mx-auto h-10 w-10 text-muted-foreground/40" />
           <p className="mt-3 text-muted-foreground">Nenhuma solicitação de prêmio.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {claims.map(claim => (
-            <div key={claim.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
+            <div key={claim.id} className="rounded-xl border border-border bg-card p-3 sm:p-4 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-display font-bold text-foreground">{claim.pool_title}</p>
+                    <p className="font-display font-bold text-foreground text-sm sm:text-base break-words">{claim.pool_title}</p>
                     {claim.purchase_quantity && (
-                      <span className="text-xs px-2 py-0.5 rounded-full border bg-muted text-muted-foreground">
+                      <span className="text-xs px-2 py-0.5 rounded-full border bg-muted text-muted-foreground whitespace-nowrap">
                         {claim.purchase_quantity} cota(s)
                       </span>
                     )}
                     {getStatusBadge(claim.status)}
                   </div>
-                  <p className="font-display font-bold text-gradient-gold">
+                  <p className="font-display font-bold text-gradient-gold text-sm sm:text-base">
                     R$ {claim.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground whitespace-nowrap">
                   {new Date(claim.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <div>
+                <div className="flex items-start gap-2">
+                  <User className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Nome</p>
-                    <p className="text-foreground text-xs sm:text-sm">{claim.full_name || '—'}</p>
+                    <p className="text-foreground text-xs sm:text-sm break-words">{claim.full_name || '—'}</p>
                   </div>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">CPF</p>
-                  <p className="text-foreground font-mono text-xs">{formatCpf(claim.cpf)}</p>
+                  <p className="text-foreground font-mono text-xs break-all">{formatCpf(claim.cpf)}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Key className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <div>
+                <div className="flex items-start gap-2">
+                  <Key className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Chave PIX</p>
                     <p className="text-foreground break-all text-xs sm:text-sm">{claim.pix_key}</p>
                   </div>
@@ -241,14 +241,14 @@ const AdminClaims = () => {
               {claim.status === 'rejected' && claim.rejection_reason && (
                 <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 flex gap-2">
                   <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <p className="text-xs text-red-400 font-semibold mb-1">Motivo da Recusa</p>
-                    <p className="text-xs text-red-300">{claim.rejection_reason}</p>
+                    <p className="text-xs text-red-300 break-words">{claim.rejection_reason}</p>
                   </div>
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 pt-2 border-t border-border">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t border-border">
                 <Select value={claim.status} onValueChange={(v) => handleStatusChange(claim.id, v)}>
                   <SelectTrigger className="w-full sm:w-44 bg-muted h-9 text-xs sm:text-sm">
                     <SelectValue />
@@ -260,12 +260,12 @@ const AdminClaims = () => {
                   </SelectContent>
                 </Select>
                 {claim.signed_contract && (
-                  <>
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setContractDialog({ open: true, contract: claim.signed_contract })}
-                      className="text-xs sm:text-sm"
+                      className="text-xs sm:text-sm w-full sm:w-auto"
                     >
                       <FileText className="mr-1 h-3.5 w-3.5" /> Ver Contrato
                     </Button>
@@ -273,11 +273,11 @@ const AdminClaims = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => exportToPdf(claim.signed_contract)}
-                      className="text-xs sm:text-sm"
+                      className="text-xs sm:text-sm w-full sm:w-auto"
                     >
                       <Download className="mr-1 h-3.5 w-3.5" /> Exportar PDF
                     </Button>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
@@ -290,14 +290,14 @@ const AdminClaims = () => {
         <DialogContent className="bg-card border-border w-[95vw] max-w-2xl max-h-[90vh] flex flex-col p-4 sm:p-6">
           <DialogHeader className="shrink-0">
             <DialogTitle className="font-display text-lg sm:text-xl">Contrato Assinado</DialogTitle>
-            <DialogDescription className="text-muted-foreground">Detalhes do contrato assinado pelo participante.</DialogDescription>
+            <DialogDescription className="text-muted-foreground text-xs sm:text-sm">Detalhes do contrato assinado pelo participante.</DialogDescription>
           </DialogHeader>
           <ScrollArea className="flex-1 min-h-0 pr-4">
             {contractDialog.contract && (
               <div className="space-y-3 text-xs sm:text-sm">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div><p className="text-xs text-muted-foreground">Nome</p><p className="text-foreground text-xs sm:text-sm">{contractDialog.contract.full_name}</p></div>
-                  <div><p className="text-xs text-muted-foreground">CPF</p><p className="text-foreground font-mono text-xs">{formatCpf(contractDialog.contract.cpf)}</p></div>
+                  <div><p className="text-xs text-muted-foreground">Nome</p><p className="text-foreground text-xs sm:text-sm break-words">{contractDialog.contract.full_name}</p></div>
+                  <div><p className="text-xs text-muted-foreground">CPF</p><p className="text-foreground font-mono text-xs break-all">{formatCpf(contractDialog.contract.cpf)}</p></div>
                   <div><p className="text-xs text-muted-foreground">Chave PIX</p><p className="text-foreground break-all text-xs sm:text-sm">{contractDialog.contract.pix_key}</p></div>
                   <div><p className="text-xs text-muted-foreground">Valor</p><p className="text-gradient-gold font-bold text-xs sm:text-sm">R$ {contractDialog.contract.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p></div>
                 </div>
@@ -312,29 +312,32 @@ const AdminClaims = () => {
         <DialogContent className="bg-card border-border w-[95vw] max-w-md p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="font-display text-lg sm:text-xl">Rejeitar Solicitação</DialogTitle>
-            <DialogDescription className="text-muted-foreground">Informe o motivo da recusa para o usuário.</DialogDescription>
+            <DialogDescription className="text-muted-foreground text-xs sm:text-sm">Informe o motivo da recusa para o usuário.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Motivo da Recusa *</label>
+              <label className="text-xs sm:text-sm font-medium text-foreground">Motivo da Recusa *</label>
               <Textarea
                 placeholder="Explique o motivo da recusa (ex: Dados bancários inválidos, CPF não confere, etc.)"
                 value={rejectionDialog.reason}
                 onChange={(e) => setRejectionDialog(prev => ({ ...prev, reason: e.target.value }))}
-                className="bg-muted min-h-24 resize-none"
+                className="bg-muted min-h-24 resize-none text-xs sm:text-sm"
               />
               <p className="text-xs text-muted-foreground">Este motivo será exibido ao usuário.</p>
             </div>
             <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2 border-t border-border">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => setRejectionDialog({ open: false, claimId: '', reason: '' })}
+                className="text-xs sm:text-sm"
               >
                 Cancelar
               </Button>
               <Button
+                size="sm"
                 onClick={handleRejectWithReason}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm"
               >
                 Rejeitar
               </Button>
