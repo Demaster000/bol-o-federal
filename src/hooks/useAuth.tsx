@@ -49,8 +49,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string, phone: string) => {
-    const { error } = await supabase.auth.signUp({
+  const signUp = async (email: string, password: string, fullName: string, phone: string, referralCode?: string) => {
+    const { error, data } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -64,7 +64,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     // Se o registro foi bem-sucedido, fazer login automático
     if (!error) {
-      await supabase.auth.signInWithPassword({ email, password });
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      
+      // After login, create referral relationship if referral code exists
+      if (!signInError && referralCode) {
+        try {
+          // Find the referrer by code
+          const { data: referrer } = await supabase
+            .from('profiles')
+            .select('user_id')
+            .eq('referral_code', referralCode.toUpperCase())
+            .single();
+          
+          if (referrer) {
+            const { data: currentUser } = await supabase.auth.getUser();
+            if (currentUser?.user && referrer.user_id !== currentUser.user.id) {
+              await supabase.from('referrals').insert({
+                referrer_id: referrer.user_id,
+                referred_id: currentUser.user.id,
+              });
+            }
+          }
+        } catch (e) {
+          console.error('Referral tracking error:', e);
+        }
+      }
     }
     
     return { error };
