@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Clock } from 'lucide-react';
+import { Clock, AlertTriangle } from 'lucide-react';
 
 interface ClaimPrizeDialogProps {
   open: boolean;
@@ -27,8 +27,31 @@ const ClaimPrizeDialog = ({ open, onClose, onSuccess, purchaseId, poolId, poolTi
   const [pixKey, setPixKey] = useState('');
   const [accepted, setAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Auto-fill name and CPF from profile
+  useEffect(() => {
+    if (open && user) {
+      supabase
+        .from('profiles')
+        .select('full_name, cpf')
+        .eq('user_id', user.id)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            if (data.full_name) setFullName(data.full_name);
+            if (data.cpf) {
+              // Format CPF for display
+              const digits = data.cpf.replace(/\D/g, '');
+              setCpf(formatCpf(digits));
+            }
+          }
+          setProfileLoaded(true);
+        });
+    }
+  }, [open, user]);
 
   const formatCpf = (value: string) => {
     const digits = value.replace(/\D/g, '').slice(0, 11);
