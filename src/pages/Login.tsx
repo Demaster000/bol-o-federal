@@ -12,6 +12,7 @@ const Login = () => {
   const [searchParams] = useSearchParams();
   const initialMode = (searchParams.get('mode') as 'login' | 'register') || 'login';
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
+  const [cpf, setCpf] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -53,8 +54,37 @@ const Login = () => {
     }
   };
 
+  const formatCpf = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+    return digits
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  };
+
+  const validateCpf = (cpf: string): boolean => {
+    const digits = cpf.replace(/\D/g, '');
+    if (digits.length !== 11) return false;
+    if (/^(\d)\1{10}$/.test(digits)) return false;
+    let sum = 0;
+    for (let i = 0; i < 9; i++) sum += parseInt(digits[i]) * (10 - i);
+    let rest = (sum * 10) % 11;
+    if (rest === 10) rest = 0;
+    if (rest !== parseInt(digits[9])) return false;
+    sum = 0;
+    for (let i = 0; i < 10; i++) sum += parseInt(digits[i]) * (11 - i);
+    rest = (sum * 10) % 11;
+    if (rest === 10) rest = 0;
+    return rest === parseInt(digits[10]);
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateCpf(cpf)) {
+      toast({ title: 'Erro', description: 'CPF inválido. Verifique e tente novamente.', variant: 'destructive' });
+      return;
+    }
     
     if (!fullName.trim()) {
       toast({ title: 'Erro', description: 'Por favor, insira seu nome completo.', variant: 'destructive' });
@@ -72,7 +102,7 @@ const Login = () => {
     }
 
     setLoading(true);
-    const { error } = await signUp(email, password, fullName, phone, refCode || undefined);
+    const { error } = await signUp(email, password, fullName, phone, cpf, refCode || undefined);
     setLoading(false);
     
     if (error) {
@@ -215,10 +245,23 @@ const Login = () => {
           ) : (
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="space-y-2">
+                <Label htmlFor="register-cpf">CPF</Label>
+                <Input
+                  id="register-cpf"
+                  placeholder="000.000.000-00"
+                  value={cpf}
+                  onChange={(e) => setCpf(formatCpf(e.target.value))}
+                  maxLength={14}
+                  required
+                  className="bg-muted"
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="register-name">Nome completo</Label>
                 <Input
                   id="register-name"
-                  placeholder="Seu nome"
+                  placeholder="Seu nome (conforme documento)"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
@@ -305,6 +348,9 @@ const Login = () => {
                   </button>
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                ⚠️ A chave PIX para recebimento de prêmios deverá estar <strong>no nome do titular</strong> cadastrado.
+              </p>
               <Button 
                 type="submit" 
                 disabled={loading} 
