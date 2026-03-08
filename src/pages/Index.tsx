@@ -11,6 +11,8 @@ import PoolCard from '@/components/PoolCard';
 import BuyQuotaDialog from '@/components/BuyQuotaDialog';
 import WhatsAppPopup from '@/components/WhatsAppPopup';
 
+type PoolWithType = Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
+
 const WinningsCarousel = ({ winnings }: { winnings: PoolWithType[] }) => {
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(1);
