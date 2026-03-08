@@ -28,9 +28,13 @@ const Login = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (!authLoading && user) {
-      navigate('/dashboard', { replace: true });
+      if (poolId) {
+        navigate(`/?pool=${poolId}`, { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, poolId]);
 
   // Get redirect URL and referral code from query params
   const redirectUrl = searchParams.get('redirect') || '/';
