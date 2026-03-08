@@ -23,8 +23,8 @@ const PoolFilters = ({ onFilter }: PoolFiltersProps) => {
 
   const applyFilters = (lt?: string, pr?: string) => {
     onFilter({
-      lotteryTypeId: lt ?? lotteryTypeId || undefined,
-      priceRange: pr ?? priceRange || undefined,
+      lotteryTypeId: (lt ?? lotteryTypeId) || undefined,
+      priceRange: (pr ?? priceRange) || undefined,
     });
   };
 
