@@ -348,6 +348,9 @@ const Login = () => {
                   </button>
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                ⚠️ A chave PIX para recebimento de prêmios deverá estar <strong>no nome do titular</strong> cadastrado.
+              </p>
               <Button 
                 type="submit" 
                 disabled={loading} 
