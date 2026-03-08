@@ -62,33 +62,114 @@ const Admin = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [exportFields, setExportFields] = useState({ name: true, phone: true, quotas: true, paid: true, date: false });
 
-  const exportParticipants = () => {
+  const exportParticipants = async () => {
     if (poolPurchases.length === 0) return;
-    const headers: string[] = [];
-    if (exportFields.name) headers.push('Nome');
-    if (exportFields.phone) headers.push('WhatsApp');
-    if (exportFields.quotas) headers.push('Cotas');
-    if (exportFields.paid) headers.push('Total Pago');
-    if (exportFields.date) headers.push('Data');
+    try {
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 15;
+      const maxWidth = pageWidth - 2 * margin;
+      let y = margin;
 
-    const rows = poolPurchases.map(p => {
-      const cols: string[] = [];
-      if (exportFields.name) cols.push(p.profile_name ?? 'Usuário');
-      if (exportFields.phone) cols.push(p.profile_phone ?? '—');
-      if (exportFields.quotas) cols.push(String(p.quantity));
-      if (exportFields.paid) cols.push(`R$ ${p.total_paid.toFixed(2)}`);
-      if (exportFields.date) cols.push(new Date(p.created_at!).toLocaleDateString('pt-BR'));
-      return cols.join(',');
-    });
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Relatório de Participantes', margin, y);
+      y += 8;
 
-    const csv = [headers.join(','), ...rows].join('\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `participantes_${selectedPool?.title?.replace(/\s+/g, '_') ?? 'bolao'}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Bolão: ${selectedPool?.title ?? '—'}`, margin, y);
+      y += 5;
+      doc.text(`Data de exportação: ${new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, margin, y);
+      y += 5;
+      doc.text(`Total de participantes: ${poolPurchases.length}`, margin, y);
+      y += 5;
+
+      const totalQuotas = poolPurchases.reduce((s, p) => s + p.quantity, 0);
+      const totalPaid = poolPurchases.reduce((s, p) => s + p.total_paid, 0);
+      doc.text(`Total de cotas: ${totalQuotas}  |  Valor total: R$ ${totalPaid.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, margin, y);
+      y += 10;
+
+      const headers: string[] = [];
+      const colKeys: string[] = [];
+      if (exportFields.name) { headers.push('Nome'); colKeys.push('name'); }
+      if (exportFields.phone) { headers.push('WhatsApp'); colKeys.push('phone'); }
+      if (exportFields.quotas) { headers.push('Cotas'); colKeys.push('quotas'); }
+      if (exportFields.paid) { headers.push('Valor Pago'); colKeys.push('paid'); }
+      if (exportFields.date) { headers.push('Data'); colKeys.push('date'); }
+
+      if (headers.length === 0) return;
+
+      const colCount = headers.length;
+      const colWidth = maxWidth / colCount;
+      const rowHeight = 7;
+
+      doc.setFillColor(30, 30, 40);
+      doc.rect(margin, y, maxWidth, rowHeight, 'F');
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      headers.forEach((h, i) => {
+        doc.text(h, margin + i * colWidth + 2, y + 5);
+      });
+      doc.setTextColor(0, 0, 0);
+      y += rowHeight;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      poolPurchases.forEach((p, idx) => {
+        if (y + rowHeight > pageHeight - margin) {
+          doc.addPage();
+          y = margin;
+          doc.setFillColor(30, 30, 40);
+          doc.rect(margin, y, maxWidth, rowHeight, 'F');
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(255, 255, 255);
+          headers.forEach((h, i) => {
+            doc.text(h, margin + i * colWidth + 2, y + 5);
+          });
+          doc.setTextColor(0, 0, 0);
+          doc.setFont('helvetica', 'normal');
+          y += rowHeight;
+        }
+
+        if (idx % 2 === 0) {
+          doc.setFillColor(245, 245, 245);
+          doc.rect(margin, y, maxWidth, rowHeight, 'F');
+        }
+
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(margin, y, maxWidth, rowHeight, 'S');
+
+        const values: Record<string, string> = {
+          name: p.profile_name ?? 'Usuário',
+          phone: p.profile_phone ?? '—',
+          quotas: String(p.quantity),
+          paid: `R$ ${p.total_paid.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+          date: new Date(p.created_at!).toLocaleDateString('pt-BR'),
+        };
+
+        colKeys.forEach((key, i) => {
+          const text = values[key] ?? '';
+          const truncated = text.length > 28 ? text.substring(0, 26) + '...' : text;
+          doc.text(truncated, margin + i * colWidth + 2, y + 5);
+        });
+
+        y += rowHeight;
+      });
+
+      y += 5;
+      if (y > pageHeight - 15) { doc.addPage(); y = margin; }
+      doc.setFontSize(8);
+      doc.setTextColor(120, 120, 120);
+      doc.text('Documento gerado automaticamente pelo sistema Sorte Compartilhada.', margin, y);
+
+      doc.save(`participantes_${selectedPool?.title?.replace(/\s+/g, '_') ?? 'bolao'}.pdf`);
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+    }
   };
 
   const fetchData = async () => {
