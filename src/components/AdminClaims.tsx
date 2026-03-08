@@ -6,6 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { DollarSign, FileText, User, Key, Download } from 'lucide-react';
 
 interface Claim {
@@ -35,6 +37,7 @@ const STATUS_OPTIONS = [
 const AdminClaims = () => {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [contractDialog, setContractDialog] = useState<{ open: boolean; contract: any }>({ open: false, contract: null });
+  const [rejectionDialog, setRejectionDialog] = useState<{ open: boolean; claimId: string; reason: string }>({ open: false, claimId: '', reason: '' });
   const { toast } = useToast();
 
   const fetchClaims = async () => {
@@ -83,6 +86,24 @@ const AdminClaims = () => {
 
   const formatCpf = (cpf: string) =>
     cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+
+  const handleConfirmRejection = async () => {
+    if (!rejectionDialog.claimId || !rejectionDialog.reason.trim()) {
+      toast({ title: 'Erro', description: 'Informe um motivo para a recusa.', variant: 'destructive' });
+      return;
+    }
+    const { error } = await supabase
+      .from('prize_claims')
+      .update({ status: 'rejected', rejection_reason: rejectionDialog.reason })
+      .eq('id', rejectionDialog.claimId);
+    if (error) {
+      toast({ title: 'Erro', description: 'Falha ao rejeitar solicitação.', variant: 'destructive' });
+    } else {
+      toast({ title: 'Solicitação rejeitada!', description: 'O motivo foi registrado.' });
+      setRejectionDialog({ open: false, claimId: '', reason: '' });
+      fetchClaims();
+    }
+  };
 
   const exportToPdf = async (contract: any) => {
     try {
@@ -237,6 +258,16 @@ const AdminClaims = () => {
                       <Download className="mr-1 h-3.5 w-3.5" /> Exportar PDF
                     </Button>
                   </>
+                )}
+                {claim.status === 'pending' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRejectionDialog({ open: true, claimId: claim.id, reason: '' })}
+                    className="text-xs sm:text-sm text-red-500 hover:text-red-600"
+                  >
+                    Rejeitar
+                  </Button>
                 )}
               </div>
             </div>
