@@ -577,10 +577,10 @@ const Admin = () => {
 
       {/* Result Dialog */}
       <Dialog open={resultOpen} onOpenChange={setResultOpen}>
-        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] flex flex-col">
+        <DialogContent className="bg-card border-border w-[95vw] max-w-lg max-h-[90vh] flex flex-col p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">Publicar Resultado</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            <DialogTitle className="font-display text-lg sm:text-xl">Publicar Resultado</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs sm:text-sm">
               Informe os números sorteados para o bolão: {selectedPool?.title}
             </DialogDescription>
           </DialogHeader>
