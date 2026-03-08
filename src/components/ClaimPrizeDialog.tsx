@@ -237,21 +237,24 @@ const ClaimPrizeDialog = ({ open, onClose, onSuccess, purchaseId, poolId, poolTi
             <div className="space-y-1.5">
               <Label className="text-sm">Nome Completo *</Label>
               <Input
-                className="bg-muted"
+                className="bg-muted disabled:opacity-70"
                 placeholder="Seu nome completo"
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                readOnly
+                disabled
               />
+              <p className="text-xs text-muted-foreground">Preenchido automaticamente do seu cadastro.</p>
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">CPF *</Label>
               <Input
-                className="bg-muted"
+                className="bg-muted disabled:opacity-70"
                 placeholder="000.000.000-00"
                 value={cpf}
-                onChange={(e) => setCpf(formatCpf(e.target.value))}
-                maxLength={14}
+                readOnly
+                disabled
               />
+              <p className="text-xs text-muted-foreground">Preenchido automaticamente do seu cadastro.</p>
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">Chave PIX *</Label>
@@ -261,6 +264,12 @@ const ClaimPrizeDialog = ({ open, onClose, onSuccess, purchaseId, poolId, poolTi
                 value={pixKey}
                 onChange={(e) => setPixKey(e.target.value)}
               />
+              <div className="flex items-start gap-1.5 mt-1">
+                <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-600 font-medium">
+                  A chave PIX deve estar no nome do titular ({fullName || 'seu nome'}).
+                </p>
+              </div>
             </div>
           </div>
 
