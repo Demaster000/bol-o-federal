@@ -454,7 +454,27 @@ const Admin = () => {
     }
   };
 
-  const statusLabel: Record<string, string> = {
+  const handleDuplicatePool = async (pool: PoolWithType) => {
+    setFormLoading(true);
+    const { error } = await supabase.from('pools').insert({
+      lottery_type_id: pool.lottery_type_id,
+      title: `${pool.title} (Cópia)`,
+      description: pool.description,
+      price_per_quota: pool.price_per_quota,
+      prize_amount: pool.prize_amount,
+      draw_date: null,
+      unlimited_quotas: pool.unlimited_quotas,
+      total_quotas: pool.total_quotas,
+    });
+    setFormLoading(false);
+    if (error) {
+      toast({ title: 'Erro', description: `Falha ao duplicar: ${error.message}`, variant: 'destructive' });
+    } else {
+      toast({ title: 'Bolão duplicado com sucesso!' });
+      fetchData();
+    }
+  };
+
     open: 'Aberto', closed: 'Fechado', drawn: 'Sorteado', paid: 'Pago',
   };
 
