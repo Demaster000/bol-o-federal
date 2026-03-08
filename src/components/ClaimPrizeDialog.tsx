@@ -115,6 +115,15 @@ const ClaimPrizeDialog = ({ open, onClose, onSuccess, purchaseId, poolId, poolTi
     }
 
     setLoading(true);
+    
+    // Delete any previous rejected claim for this purchase
+    await supabase
+      .from('prize_claims')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('purchase_id', purchaseId)
+      .eq('status', 'rejected');
+
     const signedContract = await generateSignedContract();
     const { error } = await supabase.from('prize_claims').insert({
       user_id: user.id,

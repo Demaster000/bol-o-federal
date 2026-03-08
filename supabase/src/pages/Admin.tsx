@@ -19,7 +19,7 @@ import AdminWhatsApp from '@/components/AdminWhatsApp';
 import { Navigate } from 'react-router-dom';
 
 type PoolWithType = Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
-type PurchaseWithProfile = Tables<'pool_purchases'> & { profile_name?: string };
+type PurchaseWithProfile = Tables<'pool_purchases'> & { profile_name?: string; profile_phone?: string };
 
 const Admin = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -333,71 +333,71 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto px-4 py-6 sm:py-10">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
+      <div className="container mx-auto px-4 py-10">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="font-display text-3xl font-bold text-foreground">
             Painel <span className="text-gradient-gold">Admin</span>
           </h1>
-          <Button onClick={() => setCreateOpen(true)} className="bg-gradient-green hover:opacity-90 text-primary-foreground w-full sm:w-auto">
+          <Button onClick={() => setCreateOpen(true)} className="bg-gradient-green hover:opacity-90 text-primary-foreground">
             <Plus className="mr-1.5 h-4 w-4" /> Novo Bolão
           </Button>
         </div>
 
-        <Tabs defaultValue="pools" className="space-y-4 sm:space-y-6">
-          <TabsList className="bg-muted flex-wrap h-auto gap-1">
-            <TabsTrigger value="pools" className="text-xs sm:text-sm">Bolões</TabsTrigger>
-            <TabsTrigger value="claims" className="text-xs sm:text-sm"><DollarSign className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> Pagamentos</TabsTrigger>
-            <TabsTrigger value="lotteries" className="text-xs sm:text-sm">Modalidades</TabsTrigger>
-            <TabsTrigger value="pix-settings" className="text-xs sm:text-sm">PIX</TabsTrigger>
-            <TabsTrigger value="whatsapp" className="text-xs sm:text-sm"><MessageSquare className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> WhatsApp</TabsTrigger>
+        <Tabs defaultValue="pools" className="space-y-6">
+          <TabsList className="bg-muted flex-wrap">
+            <TabsTrigger value="pools">Bolões</TabsTrigger>
+            <TabsTrigger value="claims"><DollarSign className="mr-1 h-3.5 w-3.5" /> Pagamentos</TabsTrigger>
+            <TabsTrigger value="lotteries">Modalidades</TabsTrigger>
+            <TabsTrigger value="pix-settings">PIX / Mercado Pago</TabsTrigger>
+            <TabsTrigger value="whatsapp"><MessageSquare className="mr-1 h-3.5 w-3.5" /> WhatsApp</TabsTrigger>
           </TabsList>
 
           <TabsContent value="pools">
-            <div className="grid gap-3 sm:gap-4">
+            <div className="grid gap-4">
               {pools.map((pool, i) => (
                 <motion.div
                   key={pool.id}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.03 }}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 rounded-xl border border-border bg-card p-3 sm:p-5"
+                  className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-border bg-card p-5"
                 >
-                  <div className="flex-1 space-y-1 min-w-0">
+                  <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-display font-bold text-foreground text-sm sm:text-base break-words">{pool.title}</h3>
-                      <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${statusColor[pool.status ?? 'open']}`}>
+                      <h3 className="font-display font-bold text-foreground">{pool.title}</h3>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${statusColor[pool.status ?? 'open']}`}>
                         {statusLabel[pool.status ?? 'open']}
                       </span>
                     </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground break-words">
+                    <p className="text-sm text-muted-foreground">
                       {pool.lottery_types?.name} • R$ {pool.price_per_quota.toFixed(2)}/cota •{' '}
                       {pool.sold_quotas ?? 0} cotas vendidas
                       {pool.prize_amount ? ` • Prêmio: R$ ${Number(pool.prize_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : ''}
                     </p>
                   </div>
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                    <Button variant="outline" size="sm" onClick={() => handleViewPurchases(pool)} className="text-xs sm:text-sm">
-                      <Eye className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> Detalhes
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button variant="outline" size="sm" onClick={() => handleViewPurchases(pool)}>
+                      <Eye className="mr-1 h-3.5 w-3.5" /> Detalhes
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleOpenEditDialog(pool)} className="text-xs sm:text-sm">
-                      <Pencil className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> Editar
+                    <Button variant="outline" size="sm" onClick={() => handleOpenEditDialog(pool)}>
+                      <Pencil className="mr-1 h-3.5 w-3.5" /> Editar
                     </Button>
                     {pool.status === 'open' && (
-                      <Button variant="outline" size="sm" onClick={() => handleClosePool(pool)} className="text-xs sm:text-sm">
+                      <Button variant="outline" size="sm" onClick={() => handleClosePool(pool)}>
                         Fechar
                       </Button>
                     )}
                     {(pool.status === 'open' || pool.status === 'closed') && (
                       <Button
                         size="sm"
-                        className="bg-gradient-gold text-secondary-foreground hover:opacity-90 text-xs sm:text-sm"
+                        className="bg-gradient-gold text-secondary-foreground hover:opacity-90"
                         onClick={() => {
                           setSelectedPool(pool);
                           setPrizeAmount(pool.prize_amount ? String(pool.prize_amount) : '');
                           setResultOpen(true);
                         }}
                       >
-                        <Trophy className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> Resultado
+                        <Trophy className="mr-1 h-3.5 w-3.5" /> Resultado
                       </Button>
                     )}
                     <Button
@@ -405,16 +405,15 @@ const Admin = () => {
                       size="sm"
                       onClick={() => handleDeletePool(pool)}
                       disabled={formLoading}
-                      className="text-xs sm:text-sm"
                     >
-                      <Trash2 className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> Excluir
+                      <Trash2 className="mr-1 h-3.5 w-3.5" /> Excluir
                     </Button>
                   </div>
                 </motion.div>
               ))}
               {pools.length === 0 && (
-                <div className="rounded-xl border border-border bg-card p-8 sm:p-12 text-center">
-                  <p className="text-muted-foreground text-sm sm:text-base">Nenhum bolão criado ainda.</p>
+                <div className="rounded-xl border border-border bg-card p-12 text-center">
+                  <p className="text-muted-foreground">Nenhum bolão criado ainda.</p>
                 </div>
               )}
             </div>

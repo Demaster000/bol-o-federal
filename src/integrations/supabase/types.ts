@@ -403,6 +403,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      trigger_whatsapp_broadcast: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "user"
