@@ -14,9 +14,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trophy, Users, Ticket, Eye, DollarSign, Trash2, MessageSquare, Download } from 'lucide-react';
+import { Plus, Pencil, Trophy, Users, Ticket, Eye, DollarSign, Trash2, MessageSquare, Download, Copy, BarChart3 } from 'lucide-react';
 import AdminClaims from '@/components/AdminClaims';
 import AdminWhatsApp from '@/components/AdminWhatsApp';
+import AdminMetrics from '@/components/AdminMetrics';
+import AdminUsers from '@/components/AdminUsers';
 import { Navigate } from 'react-router-dom';
 
 type PoolWithType = Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
@@ -452,6 +454,27 @@ const Admin = () => {
     }
   };
 
+  const handleDuplicatePool = async (pool: PoolWithType) => {
+    setFormLoading(true);
+    const { error } = await supabase.from('pools').insert({
+      lottery_type_id: pool.lottery_type_id,
+      title: `${pool.title} (Cópia)`,
+      description: pool.description,
+      price_per_quota: pool.price_per_quota,
+      prize_amount: pool.prize_amount,
+      draw_date: null,
+      unlimited_quotas: pool.unlimited_quotas,
+      total_quotas: pool.total_quotas,
+    });
+    setFormLoading(false);
+    if (error) {
+      toast({ title: 'Erro', description: `Falha ao duplicar: ${error.message}`, variant: 'destructive' });
+    } else {
+      toast({ title: 'Bolão duplicado com sucesso!' });
+      fetchData();
+    }
+  };
+
   const statusLabel: Record<string, string> = {
     open: 'Aberto', closed: 'Fechado', drawn: 'Sorteado', paid: 'Pago',
   };
@@ -475,8 +498,14 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="pools" className="space-y-4 sm:space-y-6">
-          <TabsList className="bg-muted grid grid-cols-3 sm:grid-cols-5 h-auto gap-1 p-1">
+          <TabsList className="bg-muted grid grid-cols-4 sm:grid-cols-7 h-auto gap-1 p-1 overflow-x-auto">
             <TabsTrigger value="pools" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">Bolões</TabsTrigger>
+            <TabsTrigger value="metrics" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">
+              <BarChart3 className="mr-1 h-3 w-3 hidden sm:inline" />Métricas
+            </TabsTrigger>
+            <TabsTrigger value="users" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">
+              <Users className="mr-1 h-3 w-3 hidden sm:inline" />Usuários
+            </TabsTrigger>
             <TabsTrigger value="claims" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">
               <DollarSign className="mr-1 h-3 w-3 hidden sm:inline" />Pagamentos
             </TabsTrigger>
@@ -535,6 +564,9 @@ const Admin = () => {
                         <Trophy className="mr-1 h-3 w-3" /> Resultado
                       </Button>
                     )}
+                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => handleDuplicatePool(pool)} disabled={formLoading}>
+                      <Copy className="mr-1 h-3 w-3" /> Duplicar
+                    </Button>
                     <Button
                       variant="destructive"
                       size="sm"
@@ -553,6 +585,14 @@ const Admin = () => {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="metrics">
+            <AdminMetrics />
+          </TabsContent>
+
+          <TabsContent value="users">
+            <AdminUsers />
           </TabsContent>
 
           <TabsContent value="claims">
