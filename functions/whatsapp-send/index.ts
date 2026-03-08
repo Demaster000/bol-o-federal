@@ -175,12 +175,19 @@ serve(async (req: Request) => {
 
     const { type, data } = await req.json();
 
-    // Auth check - only admins or internal calls
+    // Auth check - only admins or internal/cron calls
     const authHeader = req.headers.get("Authorization");
-    if (authHeader?.startsWith("Bearer ")) {
-      const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const token = authHeader?.replace("Bearer ", "") || "";
+
+    // If the token is the anon key or service role key, treat as internal/cron call
+    const isInternalCall = !authHeader || token === anonKey || token === svcKey;
+
+    if (!isInternalCall) {
+      // It's a user JWT — validate admin role
       const supabaseAuth = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
+        global: { headers: { Authorization: authHeader! } },
       });
       const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
       if (userError || !userData?.user) {
@@ -197,8 +204,6 @@ serve(async (req: Request) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-    } else {
-      // Internal call (from other edge functions or cron) - allow if no auth header
     }
 
     const settings = await getSettings(supabaseAdmin);
