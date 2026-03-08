@@ -179,14 +179,14 @@ serve(async (req: Request) => {
 
     const { type, data } = await req.json();
 
-    // Auth check - only admins or internal/cron calls
+    // Auth check - only admins or internal/cron calls (service role key only)
     const authHeader = req.headers.get("Authorization");
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const token = authHeader?.replace("Bearer ", "") || "";
 
-    // If the token is the anon key or service role key, treat as internal/cron call
-    const isInternalCall = !authHeader || token === anonKey || token === svcKey;
+    // Only service role key is treated as internal/cron call (anon key is public, not trusted)
+    const isInternalCall = token === svcKey;
 
     if (!isInternalCall) {
       // It's a user JWT — validate admin role using getClaims
