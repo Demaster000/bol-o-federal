@@ -498,8 +498,14 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="pools" className="space-y-4 sm:space-y-6">
-          <TabsList className="bg-muted grid grid-cols-3 sm:grid-cols-5 h-auto gap-1 p-1">
+          <TabsList className="bg-muted grid grid-cols-4 sm:grid-cols-7 h-auto gap-1 p-1 overflow-x-auto">
             <TabsTrigger value="pools" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">Bolões</TabsTrigger>
+            <TabsTrigger value="metrics" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">
+              <BarChart3 className="mr-1 h-3 w-3 hidden sm:inline" />Métricas
+            </TabsTrigger>
+            <TabsTrigger value="users" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">
+              <Users className="mr-1 h-3 w-3 hidden sm:inline" />Usuários
+            </TabsTrigger>
             <TabsTrigger value="claims" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">
               <DollarSign className="mr-1 h-3 w-3 hidden sm:inline" />Pagamentos
             </TabsTrigger>
