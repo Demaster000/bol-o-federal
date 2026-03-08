@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Trophy } from 'lucide-react';
 
 const Register = () => {
+  const [cpf, setCpf] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -16,6 +17,14 @@ const Register = () => {
   const { signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const formatCpf = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+    return digits
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,10 +62,22 @@ const Register = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-border bg-card p-6">
           <div className="space-y-2">
+            <Label htmlFor="cpf">CPF</Label>
+            <Input
+              id="cpf"
+              placeholder="000.000.000-00"
+              value={cpf}
+              onChange={(e) => setCpf(formatCpf(e.target.value))}
+              maxLength={14}
+              required
+              className="bg-muted"
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="name">Nome completo</Label>
             <Input
               id="name"
-              placeholder="Seu nome"
+              placeholder="Seu nome (conforme documento)"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
@@ -98,6 +119,9 @@ const Register = () => {
               className="bg-muted"
             />
           </div>
+          <p className="text-xs text-muted-foreground text-center">
+            ⚠️ A chave PIX para recebimento de prêmios deverá estar <strong>no nome do titular</strong> cadastrado.
+          </p>
           <Button type="submit" disabled={loading} className="w-full bg-gradient-green hover:opacity-90 text-primary-foreground font-display font-semibold">
             {loading ? 'Cadastrando...' : 'Cadastrar'}
           </Button>
