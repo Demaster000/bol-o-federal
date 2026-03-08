@@ -76,14 +76,22 @@ const Dashboard = () => {
       .single();
 
     if (data) {
-      setClaimedPurchases(prev => new Map(prev).set(purchaseId, { 
-        status: (data as any).status, 
-        reason: (data as any).rejection_reason,
-        claimId: (data as any).id
-      }));
+      setClaimedPurchases(prev => {
+        const newMap = new Map(prev);
+        newMap.set(purchaseId, { 
+          status: (data as any).status, 
+          reason: (data as any).rejection_reason,
+          claimId: (data as any).id
+        });
+        return newMap;
+      });
     } else {
-      // Se não encontrar, recarregar todos os dados
-      fetchData();
+      // Se não encontrar, remover do mapa
+      setClaimedPurchases(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(purchaseId);
+        return newMap;
+      });
     }
   };
 
@@ -334,15 +342,17 @@ const Dashboard = () => {
                               </span>
                             </p>
                             
-                            {isRejected && rejectionReason && (
+                            {isRejected && (
                               <div className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 p-2 space-y-2">
-                                <div className="flex items-start gap-2">
-                                  <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-[10px] text-red-400 font-semibold mb-1">Motivo da Recusa:</p>
-                                    <p className="text-[10px] text-red-300 leading-relaxed break-words">{rejectionReason}</p>
+                                {rejectionReason && (
+                                  <div className="flex items-start gap-2">
+                                    <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[10px] text-red-400 font-semibold mb-1">Motivo da Recusa:</p>
+                                      <p className="text-[10px] text-red-300 leading-relaxed break-words">{rejectionReason}</p>
+                                    </div>
                                   </div>
-                                </div>
+                                )}
                                 <Button
                                   size="sm"
                                   className="w-full mt-2 bg-gradient-green hover:opacity-90 text-primary-foreground text-xs h-7"
