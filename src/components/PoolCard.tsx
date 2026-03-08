@@ -160,9 +160,14 @@ const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
             </div>
             <p className="font-display font-bold text-foreground text-xs sm:text-sm">
               {pool.draw_date
-                ? new Date(pool.draw_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                ? formatDrawDateBRT(pool.draw_date)
                 : 'A definir'}
             </p>
+            {pool.draw_date && (
+              <p className="text-[10px] text-muted-foreground">
+                às {formatDrawTimeBRT(pool.draw_date)}
+              </p>
+            )}
           </div>
         </div>
 
