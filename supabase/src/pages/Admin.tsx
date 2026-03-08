@@ -21,6 +21,16 @@ import { Navigate } from 'react-router-dom';
 type PoolWithType = Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
 type PurchaseWithProfile = Tables<'pool_purchases'> & { profile_name?: string; profile_phone?: string };
 
+const DEFAULT_DESCRIPTION = `📋 COMO PARTICIPAR:
+
+1️⃣ Clique em "Comprar Cota"
+2️⃣ Escolha a quantidade de cotas desejada
+3️⃣ Realize o pagamento via PIX (QR Code)
+4️⃣ Aguarde a confirmação automática do pagamento
+5️⃣ Pronto! Suas cotas estão garantidas! 🎉
+
+🍀 Boa sorte a todos!`;
+
 const Admin = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -39,7 +49,7 @@ const Admin = () => {
   const [form, setForm] = useState({
     lottery_type_id: '',
     title: '',
-    description: '',
+    description: DEFAULT_DESCRIPTION,
     price_per_quota: '',
     prize_amount: '',
     draw_date: '',
@@ -130,13 +140,13 @@ const Admin = () => {
         }
       }
       setCreateOpen(false);
-      setForm({ lottery_type_id: '', title: '', description: '', price_per_quota: '', prize_amount: '', draw_date: '', unlimited_quotas: false, total_quotas: '100' });
+      setForm({ lottery_type_id: '', title: '', description: DEFAULT_DESCRIPTION, price_per_quota: '', prize_amount: '', draw_date: '', unlimited_quotas: false, total_quotas: '100' });
       fetchData();
     }
   };
 
   const resetForm = () => {
-    setForm({ lottery_type_id: '', title: '', description: '', price_per_quota: '', prize_amount: '', draw_date: '', unlimited_quotas: false, total_quotas: '100' });
+    setForm({ lottery_type_id: '', title: '', description: DEFAULT_DESCRIPTION, price_per_quota: '', prize_amount: '', draw_date: '', unlimited_quotas: false, total_quotas: '100' });
     setIsEditing(false);
   };
 
