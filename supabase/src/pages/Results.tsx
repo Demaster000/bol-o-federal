@@ -82,20 +82,12 @@ const Results = () => {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="flex flex-wrap gap-4 text-xs">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                         <span className="text-muted-foreground">
                           {pool.draw_date ? new Date(pool.draw_date).toLocaleDateString('pt-BR') : '—'}
                         </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-muted-foreground">{soldQuotas} cotas vendidas</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-muted-foreground">Arrecadado: R$ {totalCollected.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                       </div>
                       {prize > 0 && (
                         <div className="flex items-center gap-1.5">
