@@ -72,6 +72,7 @@ const AdminClaims = () => {
   const handleStatusChange = async (claimId: string, newStatus: string) => {
     const { error } = await supabase.from('prize_claims').update({ status: newStatus }).eq('id', claimId);
     if (error) {
+      console.error('Erro ao atualizar status:', error);
       toast({ title: 'Erro', description: 'Falha ao atualizar status.', variant: 'destructive' });
     } else {
       toast({ title: 'Status atualizado!' });
@@ -97,9 +98,14 @@ const AdminClaims = () => {
       .update({ status: 'rejected', rejection_reason: rejectionDialog.reason })
       .eq('id', rejectionDialog.claimId);
     if (error) {
-      toast({ title: 'Erro', description: 'Falha ao rejeitar solicitação.', variant: 'destructive' });
+      console.error('Erro ao rejeitar solicitacao:', error);
+      toast({ 
+        title: 'Erro', 
+        description: 'Falha ao rejeitar solicitacao. Verifique se a coluna rejection_reason existe no banco de dados.', 
+        variant: 'destructive' 
+      });
     } else {
-      toast({ title: 'Solicitação rejeitada!', description: 'O motivo foi registrado.' });
+      toast({ title: 'Solicitacao rejeitada!', description: 'O motivo foi registrado.' });
       setRejectionDialog({ open: false, claimId: '', reason: '' });
       fetchClaims();
     }

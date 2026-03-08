@@ -243,6 +243,7 @@ export type Database = {
           pix_key: string
           pool_id: string
           purchase_id: string | null
+          rejection_reason: string | null
           signed_contract: Json | null
           status: string
           user_id: string
@@ -257,6 +258,7 @@ export type Database = {
           pix_key: string
           pool_id: string
           purchase_id?: string | null
+          rejection_reason?: string | null
           signed_contract?: Json | null
           status?: string
           user_id: string
@@ -271,6 +273,7 @@ export type Database = {
           pix_key?: string
           pool_id?: string
           purchase_id?: string | null
+          rejection_reason?: string | null
           signed_contract?: Json | null
           status?: string
           user_id?: string

@@ -66,6 +66,8 @@ const Dashboard = () => {
 
   const updateClaimStatus = async (purchaseId: string) => {
     if (!user) return;
+    // Aguardar um pouco para garantir que o banco de dados foi atualizado
+    await new Promise(resolve => setTimeout(resolve, 500));
     const { data } = await supabase
       .from('prize_claims')
       .select('purchase_id, status, rejection_reason')
@@ -78,6 +80,9 @@ const Dashboard = () => {
         status: (data as any).status, 
         reason: (data as any).rejection_reason 
       }));
+    } else {
+      // Se não encontrar, recarregar todos os dados
+      fetchData();
     }
   };
 
@@ -93,6 +98,18 @@ const Dashboard = () => {
         event: 'INSERT',
         schema: 'public',
         table: 'notifications',
+        filter: `user_id=eq.${user.id}`,
+      }, () => { fetchData(); })
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'prize_claims',
+        filter: `user_id=eq.${user.id}`,
+      }, () => { fetchData(); })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'prize_claims',
         filter: `user_id=eq.${user.id}`,
       }, () => { fetchData(); })
       .on('postgres_changes', {

@@ -69,6 +69,7 @@ const AdminClaims = () => {
   const handleStatusChange = async (claimId: string, newStatus: string) => {
     const { error } = await supabase.from('prize_claims').update({ status: newStatus }).eq('id', claimId);
     if (error) {
+      console.error('Erro ao atualizar status:', error);
       toast({ title: 'Erro', description: 'Falha ao atualizar status.', variant: 'destructive' });
     } else {
       toast({ title: 'Status atualizado!' });
