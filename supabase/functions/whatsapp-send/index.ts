@@ -75,7 +75,7 @@ async function sendBroadcastOpenPools(supabaseAdmin: any, settings: WhatsAppSett
   const allMessages: string[] = [];
 
   for (const pool of openPools) {
-    const drawDate = pool.draw_date ? new Date(pool.draw_date) : null;
+    const drawDate = pool.draw_date ? parseDateAsBRT(pool.draw_date) : null;
     const poolLink = siteUrl ? `${siteUrl}/?pool=${pool.id}` : "Acesse o site";
 
     let deadlineCotas = "A definir";
