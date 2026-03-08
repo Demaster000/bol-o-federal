@@ -25,6 +25,11 @@ const Login = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Get redirect URL and referral code from query params
+  const redirectUrl = searchParams.get('redirect') || '/';
+  const poolId = searchParams.get('pool');
+  const refCode = searchParams.get('ref');
+
   // Redirect if already logged in
   useEffect(() => {
     if (!authLoading && user) {
@@ -35,11 +40,6 @@ const Login = () => {
       }
     }
   }, [user, authLoading, navigate, poolId]);
-
-  // Get redirect URL and referral code from query params
-  const redirectUrl = searchParams.get('redirect') || '/';
-  const poolId = searchParams.get('pool');
-  const refCode = searchParams.get('ref');
 
   // Build the redirect URL preserving the pool parameter
   const getRedirectUrl = () => {
