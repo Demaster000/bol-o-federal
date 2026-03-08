@@ -38,9 +38,16 @@ const ShareButtons = ({ poolId, title, price, prize, compact = false }: ShareBut
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size={compact ? "icon" : "sm"} className="text-muted-foreground hover:text-foreground h-8 w-8">
-          <Share2 className="h-3.5 w-3.5" />
-        </Button>
+        {compact ? (
+          <Button variant="ghost" size="icon" className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-white/10 h-8 w-8">
+            <Share2 className="h-3.5 w-3.5" />
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm" className="gap-1.5 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary font-semibold text-xs h-9 px-3">
+            <Share2 className="h-3.5 w-3.5" />
+            Compartilhar
+          </Button>
+        )}
       </PopoverTrigger>
       <PopoverContent className="w-48 p-2 bg-card border-border" align="end">
         <div className="space-y-1">

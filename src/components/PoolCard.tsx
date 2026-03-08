@@ -182,21 +182,24 @@ const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
           </div>
         )}
 
-        {/* Footer: preço + botão */}
-        <div className="flex items-center justify-between pt-3 border-t border-border">
-          <div>
+        {/* Footer: preço + botão + compartilhar */}
+        <div className="flex items-center justify-between pt-3 border-t border-border gap-2">
+          <div className="min-w-0">
             <span className="text-[10px] text-muted-foreground">Valor por cota</span>
             <p className="font-display font-bold text-lg text-gradient-gold">
               R$ {pool.price_per_quota.toFixed(2)}
             </p>
           </div>
-          <Button
-            onClick={() => onBuy(pool)}
-            disabled={isClosed}
-            className={`text-xs sm:text-sm ${isClosed ? '' : `bg-gradient-to-r ${gradient} hover:opacity-90 text-primary-foreground`}`}
-          >
-            {isSoldOut ? 'ESGOTADO' : (isParticipationClosed ? 'Encerrado' : (isClosed ? (pool.status === 'drawn' ? 'Encerrado' : 'Fechado') : 'Comprar Cota'))}
-          </Button>
+          <div className="flex items-center gap-2">
+            <ShareButtons poolId={pool.id} title={pool.title} price={pool.price_per_quota} prize={pool.prize_amount} />
+            <Button
+              onClick={() => onBuy(pool)}
+              disabled={isClosed}
+              className={`text-xs sm:text-sm ${isClosed ? '' : `bg-gradient-to-r ${gradient} hover:opacity-90 text-primary-foreground`}`}
+            >
+              {isSoldOut ? 'ESGOTADO' : (isParticipationClosed ? 'Encerrado' : (isClosed ? (pool.status === 'drawn' ? 'Encerrado' : 'Fechado') : 'Comprar Cota'))}
+            </Button>
+          </div>
         </div>
       </div>
     </motion.div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Trophy, Star, Shield, Zap, ChevronLeft, ChevronRight, HelpCircle, History } from 'lucide-react';
+import { Trophy, Star, Shield, Zap, ChevronLeft, ChevronRight, HelpCircle, History, Gift, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
@@ -299,6 +299,60 @@ const Index = () => {
       {/* Social Proof - Recent Winnings Carousel */}
       {recentWinnings.length > 0 && <WinningsCarousel winnings={recentWinnings} />}
 
+      {/* Indique e Ganhe CTA */}
+      <section className="border-t border-border bg-gradient-to-br from-primary/5 via-background to-primary/10">
+        <div className="container mx-auto px-4 py-10 sm:py-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="relative overflow-hidden rounded-2xl border border-primary/30 bg-card p-6 sm:p-10"
+          >
+            {/* Background decoration */}
+            <div className="absolute top-0 right-0 opacity-5">
+              <Gift className="h-40 w-40 sm:h-56 sm:w-56 text-primary" />
+            </div>
+
+            <div className="relative z-10 flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
+              <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-primary/15 shrink-0">
+                <Gift className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
+              </div>
+
+              <div className="flex-1 text-center sm:text-left">
+                <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-2">
+                  Indique e <span className="text-gradient-gold">Ganhe!</span>
+                </h2>
+                <p className="text-sm sm:text-base text-muted-foreground mb-1">
+                  Convide seus amigos para o <strong className="text-foreground">Sorte Compartilhada</strong>.
+                </p>
+                <p className="text-sm sm:text-base text-muted-foreground">
+                  Quando seu indicado <strong className="text-foreground">comprar cotas</strong>, você ganha{' '}
+                  <strong className="text-primary">1 cota grátis</strong> do mesmo sorteio! 🎁
+                </p>
+
+                <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center gap-3">
+                  {user ? (
+                    <Link to="/dashboard">
+                      <Button size="lg" className="bg-gradient-green hover:opacity-90 text-primary-foreground font-display font-semibold px-8 gap-2">
+                        <Share2 className="h-4 w-4" />
+                        Indicar Amigos
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Link to="/login?mode=register">
+                      <Button size="lg" className="bg-gradient-green hover:opacity-90 text-primary-foreground font-display font-semibold px-8 gap-2">
+                        <Share2 className="h-4 w-4" />
+                        Cadastre-se e Indique
+                      </Button>
+                    </Link>
+                  )}
+                  <span className="text-xs text-muted-foreground">Sem limite de indicações!</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
 
       {/* Available Pools */}
       <section className="container mx-auto px-4 py-10 sm:py-16">
