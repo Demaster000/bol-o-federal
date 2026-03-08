@@ -46,7 +46,7 @@ const ReferralSection = () => {
     fetchData();
   }, [user]);
 
-  const referralLink = `${window.location.origin}/login?mode=register&ref=${referralCode}`;
+  const referralLink = `https://sortecompartilhada.com.br/login?mode=register&ref=${referralCode}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(referralLink);
