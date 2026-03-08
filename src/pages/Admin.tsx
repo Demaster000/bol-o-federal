@@ -14,8 +14,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trophy, Users, Ticket, Eye, DollarSign, Trash2, MessageSquare, Download } from 'lucide-react';
+import { Plus, Pencil, Trophy, Users, Ticket, Eye, DollarSign, Trash2, MessageSquare, Download, Copy, BarChart3 } from 'lucide-react';
 import AdminClaims from '@/components/AdminClaims';
+import AdminWhatsApp from '@/components/AdminWhatsApp';
+import AdminMetrics from '@/components/AdminMetrics';
+import AdminUsers from '@/components/AdminUsers';
 import AdminWhatsApp from '@/components/AdminWhatsApp';
 import { Navigate } from 'react-router-dom';
 
