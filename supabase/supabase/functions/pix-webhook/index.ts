@@ -6,6 +6,70 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function grantReferralReward(supabaseAdmin: any, userId: string, poolId: string) {
+  try {
+    const { data: referral } = await supabaseAdmin
+      .from("referrals")
+      .select("id, referrer_id, status")
+      .eq("referred_id", userId)
+      .single();
+
+    if (!referral || !referral.referrer_id) return;
+
+    const { data: existingReward } = await supabaseAdmin
+      .from("referral_rewards")
+      .select("id")
+      .eq("referral_id", referral.id)
+      .eq("pool_id", poolId)
+      .single();
+
+    if (existingReward) return;
+
+    const { data: pool } = await supabaseAdmin
+      .from("pools")
+      .select("price_per_quota, title, status")
+      .eq("id", poolId)
+      .single();
+
+    if (!pool || pool.status !== "open") return;
+
+    const { data: bonusPurchase } = await supabaseAdmin
+      .from("pool_purchases")
+      .insert({
+        pool_id: poolId,
+        user_id: referral.referrer_id,
+        quantity: 1,
+        total_paid: 0,
+      })
+      .select("id")
+      .single();
+
+    if (bonusPurchase) {
+      await supabaseAdmin.from("referral_rewards").insert({
+        referral_id: referral.id,
+        referrer_id: referral.referrer_id,
+        pool_id: poolId,
+        purchase_id: bonusPurchase.id,
+      });
+
+      if (referral.status === "pending") {
+        await supabaseAdmin
+          .from("referrals")
+          .update({ status: "rewarded", rewarded_at: new Date().toISOString() })
+          .eq("id", referral.id);
+      }
+
+      await supabaseAdmin.from("notifications").insert({
+        user_id: referral.referrer_id,
+        message: `🎉 Você ganhou 1 cota grátis no bolão "${pool.title}" porque seu indicado comprou cotas!`,
+        pool_id: poolId,
+      });
+    }
+  } catch (e) {
+    console.error("Referral reward error:", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -84,21 +148,35 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Update payment status
-    await supabase
+    // Update payment status - use conditional update to prevent race condition with polling
+    const { data: updated, error: updateErr } = await supabase
       .from("pix_payments")
       .update({ status: "paid", paid_at: new Date().toISOString() })
-      .eq("id", payment.id);
+      .eq("id", payment.id)
+      .eq("status", "pending")
+      .select("id")
+      .single();
+
+    // Only create purchase if we were the one to update (prevents duplicates)
+    if (!updated || updateErr) {
+      console.log(`Payment ${payment.id} already processed, skipping purchase creation`);
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Create purchase record
-    const { error: purchaseError } = await supabase
+    const { data: purchase, error: purchaseError } = await supabase
       .from("pool_purchases")
       .insert({
         pool_id: payment.pool_id,
         user_id: payment.user_id,
         quantity: payment.quantity,
         total_paid: payment.total_amount,
-      });
+      })
+      .select("id")
+      .single();
 
     if (purchaseError) {
       console.error("Failed to create purchase:", purchaseError);
@@ -108,6 +186,8 @@ Deno.serve(async (req) => {
         .eq("id", payment.id);
     } else {
       console.log(`Payment confirmed for MP id: ${mpPaymentId}, purchase created`);
+      // Grant referrer bonus quota
+      await grantReferralReward(supabase, payment.user_id, payment.pool_id);
     }
 
     return new Response(JSON.stringify({ success: true }), {
