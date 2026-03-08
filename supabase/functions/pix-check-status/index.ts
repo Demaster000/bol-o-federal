@@ -104,12 +104,17 @@ Deno.serve(async (req) => {
 
             // Only create purchase if we were the one to update (prevents duplicates)
             if (updated && !updateErr) {
-              await supabaseAdmin.from("pool_purchases").insert({
+              const { data: purchase } = await supabaseAdmin.from("pool_purchases").insert({
                 pool_id: payment.pool_id,
                 user_id: userId,
                 quantity: payment.quantity,
                 total_paid: payment.total_amount,
-              });
+              }).select("id").single();
+
+              // Grant referrer 1 free quota
+              if (purchase) {
+                await grantReferralReward(supabaseAdmin, userId, payment.pool_id, payment.total_amount, payment.quantity);
+              }
             }
 
             return new Response(
