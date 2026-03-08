@@ -167,14 +167,16 @@ Deno.serve(async (req) => {
     }
 
     // Create purchase record
-    const { error: purchaseError } = await supabase
+    const { data: purchase, error: purchaseError } = await supabase
       .from("pool_purchases")
       .insert({
         pool_id: payment.pool_id,
         user_id: payment.user_id,
         quantity: payment.quantity,
         total_paid: payment.total_amount,
-      });
+      })
+      .select("id")
+      .single();
 
     if (purchaseError) {
       console.error("Failed to create purchase:", purchaseError);
@@ -184,6 +186,8 @@ Deno.serve(async (req) => {
         .eq("id", payment.id);
     } else {
       console.log(`Payment confirmed for MP id: ${mpPaymentId}, purchase created`);
+      // Grant referrer bonus quota
+      await grantReferralReward(supabase, payment.user_id, payment.pool_id);
     }
 
     return new Response(JSON.stringify({ success: true }), {
