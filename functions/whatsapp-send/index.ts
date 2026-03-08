@@ -179,28 +179,31 @@ serve(async (req: Request) => {
 
     const { type, data } = await req.json();
 
-    // Auth check - only admins or internal/cron calls (service role key only)
+    // Auth check
     const authHeader = req.headers.get("Authorization");
     const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const token = authHeader?.replace("Bearer ", "") || "";
 
-    // Only service role key is treated as internal/cron call (anon key is public, not trusted)
+    // Service role key = internal call (trusted)
     const isInternalCall = token === svcKey;
 
-    if (!isInternalCall && !authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Allow scheduled_broadcast without auth (called by pg_cron which can't send service role key)
+    const isCronBroadcast = type === "scheduled_broadcast";
 
-    if (!isInternalCall) {
-      // It's a user JWT — validate admin role using getClaims
+    if (!isInternalCall && !isCronBroadcast) {
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // It's a user JWT — validate admin role
       const supabaseAuth = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader! } },
+        global: { headers: { Authorization: authHeader } },
       });
-      const jwtToken = authHeader!.replace("Bearer ", "");
+      const jwtToken = authHeader.replace("Bearer ", "");
       const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(jwtToken);
       if (claimsError || !claimsData?.claims) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
