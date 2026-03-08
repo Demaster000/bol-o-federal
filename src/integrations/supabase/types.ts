@@ -297,6 +297,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          cpf: string | null
           created_at: string | null
           full_name: string | null
           id: string
@@ -305,6 +306,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cpf?: string | null
           created_at?: string | null
           full_name?: string | null
           id?: string
@@ -313,6 +315,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cpf?: string | null
           created_at?: string | null
           full_name?: string | null
           id?: string
