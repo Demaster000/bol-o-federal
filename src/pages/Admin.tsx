@@ -60,6 +60,36 @@ const Admin = () => {
   const [resultText, setResultText] = useState('');
   const [prizeAmount, setPrizeAmount] = useState('');
   const [formLoading, setFormLoading] = useState(false);
+  const [exportFields, setExportFields] = useState({ name: true, phone: true, quotas: true, paid: true, date: false });
+
+  const exportParticipants = () => {
+    if (poolPurchases.length === 0) return;
+    const headers: string[] = [];
+    if (exportFields.name) headers.push('Nome');
+    if (exportFields.phone) headers.push('WhatsApp');
+    if (exportFields.quotas) headers.push('Cotas');
+    if (exportFields.paid) headers.push('Total Pago');
+    if (exportFields.date) headers.push('Data');
+
+    const rows = poolPurchases.map(p => {
+      const cols: string[] = [];
+      if (exportFields.name) cols.push(p.profile_name ?? 'Usuário');
+      if (exportFields.phone) cols.push(p.profile_phone ?? '—');
+      if (exportFields.quotas) cols.push(String(p.quantity));
+      if (exportFields.paid) cols.push(`R$ ${p.total_paid.toFixed(2)}`);
+      if (exportFields.date) cols.push(new Date(p.created_at!).toLocaleDateString('pt-BR'));
+      return cols.join(',');
+    });
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `participantes_${selectedPool?.title?.replace(/\s+/g, '_') ?? 'bolao'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const fetchData = async () => {
     const [typesRes, poolsRes] = await Promise.all([
