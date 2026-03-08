@@ -12,6 +12,7 @@ const Login = () => {
   const [searchParams] = useSearchParams();
   const initialMode = (searchParams.get('mode') as 'login' | 'register') || 'login';
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
+  const [cpf, setCpf] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
