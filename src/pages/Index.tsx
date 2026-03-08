@@ -169,38 +169,38 @@ const Index = () => {
 
       {/* Social Proof - Recent Winnings */}
       {recentWinnings.length > 0 && (
-        <section className="bg-muted/30 py-16 border-y border-border">
+        <section className="bg-muted/30 py-10 sm:py-16 border-y border-border">
           <div className="container mx-auto px-4">
-            <div className="mb-10 text-center">
-              <h2 className="font-display text-3xl font-bold text-foreground">
+            <div className="mb-6 sm:mb-10 text-center">
+              <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
                 Últimos <span className="text-gradient-gold">Ganhos</span>
               </h2>
-              <p className="mt-2 text-muted-foreground">Confira os prêmios distribuídos nos últimos bolões</p>
+              <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">Confira os prêmios distribuídos nos últimos bolões</p>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-3">
               {recentWinnings.map((winning, i) => (
                 <motion.div
                   key={winning.id}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.1 }}
-                  className="rounded-2xl border border-primary/20 bg-card p-6 shadow-lg relative overflow-hidden group"
+                  className="rounded-2xl border border-primary/20 bg-card p-4 sm:p-6 shadow-lg relative overflow-hidden group"
                 >
                   <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <Trophy className="h-16 w-16 text-primary" />
+                    <Trophy className="h-12 w-12 sm:h-16 sm:w-16 text-primary" />
                   </div>
                   <div className="relative z-10">
-                    <div className="mb-4 inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary uppercase tracking-wider">
+                    <div className="mb-3 sm:mb-4 inline-block rounded-full bg-primary/10 px-3 py-1 text-[10px] sm:text-xs font-bold text-primary uppercase tracking-wider">
                       {winning.lottery_types?.name}
                     </div>
-                    <h3 className="font-display text-lg font-bold text-foreground mb-1">{winning.title}</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
+                    <h3 className="font-display text-base sm:text-lg font-bold text-foreground mb-1">{winning.title}</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                       Sorteio em {winning.draw_date ? new Date(winning.draw_date).toLocaleDateString('pt-BR') : '—'}
                     </p>
-                    <div className="mt-4 pt-4 border-t border-border">
+                    <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border">
                       <span className="text-xs text-muted-foreground block mb-1">Prêmio Total</span>
-                      <p className="font-display text-2xl font-bold text-gradient-gold">
+                      <p className="font-display text-xl sm:text-2xl font-bold text-gradient-gold">
                         R$ {Number(winning.prize_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
