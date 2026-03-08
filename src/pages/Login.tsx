@@ -102,7 +102,7 @@ const Login = () => {
     }
 
     setLoading(true);
-    const { error } = await signUp(email, password, fullName, phone, refCode || undefined);
+    const { error } = await signUp(email, password, fullName, phone, cpf, refCode || undefined);
     setLoading(false);
     
     if (error) {
