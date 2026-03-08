@@ -172,8 +172,14 @@ const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
         </div>
 
         {/* Countdown Timer */}
-        {pool.draw_date && pool.status === 'open' && (
+        {pool.draw_date && pool.status === 'open' && !isParticipationClosed && (
           <CountdownTimer drawDate={pool.draw_date} compact />
+        )}
+        {pool.draw_date && isParticipationClosed && pool.status === 'open' && (
+          <div className="text-[10px] text-destructive font-bold flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            Participação encerrada (limite: {getParticipationDeadline(pool.draw_date)})
+          </div>
         )}
 
         {/* Footer: preço + botão */}
