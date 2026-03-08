@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Trophy, Star, Shield, Zap } from 'lucide-react';
+import { Trophy, Star, Shield, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
@@ -12,6 +12,113 @@ import BuyQuotaDialog from '@/components/BuyQuotaDialog';
 import WhatsAppPopup from '@/components/WhatsAppPopup';
 
 type PoolWithType = Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
+
+const WinningsCarousel = ({ winnings }: { winnings: PoolWithType[] }) => {
+  const [current, setCurrent] = useState(0);
+  const [direction, setDirection] = useState(1);
+
+  const next = useCallback(() => {
+    setDirection(1);
+    setCurrent(prev => (prev + 1) % winnings.length);
+  }, [winnings.length]);
+
+  const prev = useCallback(() => {
+    setDirection(-1);
+    setCurrent(prev => (prev - 1 + winnings.length) % winnings.length);
+  }, [winnings.length]);
+
+  useEffect(() => {
+    const timer = setInterval(next, 5000);
+    return () => clearInterval(timer);
+  }, [next]);
+
+  const winning = winnings[current];
+
+  const variants = {
+    enter: (d: number) => ({ x: d > 0 ? 300 : -300, opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (d: number) => ({ x: d > 0 ? -300 : 300, opacity: 0 }),
+  };
+
+  return (
+    <section className="bg-muted/30 py-10 sm:py-16 border-y border-border">
+      <div className="container mx-auto px-4">
+        <div className="mb-6 sm:mb-10 text-center">
+          <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
+            Últimos <span className="text-gradient-gold">Ganhos</span>
+          </h2>
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">Confira os prêmios distribuídos nos últimos bolões</p>
+        </div>
+
+        <div className="relative max-w-lg mx-auto">
+          {winnings.length > 1 && (
+            <>
+              <button
+                onClick={prev}
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 sm:-translate-x-6 z-10 h-9 w-9 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                onClick={next}
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 sm:translate-x-6 z-10 h-9 w-9 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </>
+          )}
+
+          <div className="overflow-hidden relative min-h-[220px] sm:min-h-[240px]">
+            <AnimatePresence custom={direction} mode="wait">
+              <motion.div
+                key={winning.id}
+                custom={direction}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.35, ease: 'easeInOut' }}
+                className="rounded-2xl border border-primary/20 bg-card p-5 sm:p-8 shadow-lg relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                  <Trophy className="h-14 w-14 sm:h-20 sm:w-20 text-primary" />
+                </div>
+                <div className="relative z-10">
+                  <div className="mb-3 inline-block rounded-full bg-primary/10 px-3 py-1 text-[10px] sm:text-xs font-bold text-primary uppercase tracking-wider">
+                    {winning.lottery_types?.name}
+                  </div>
+                  <h3 className="font-display text-lg sm:text-xl font-bold text-foreground mb-1">{winning.title}</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-4">
+                    Sorteio em {winning.draw_date ? new Date(winning.draw_date).toLocaleDateString('pt-BR') : '—'}
+                  </p>
+                  <div className="pt-4 border-t border-border">
+                    <span className="text-xs text-muted-foreground block mb-1">Prêmio Total</span>
+                    <p className="font-display text-2xl sm:text-3xl font-bold text-gradient-gold">
+                      R$ {Number(winning.prize_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {winnings.length > 1 && (
+            <div className="flex justify-center gap-2 mt-4">
+              {winnings.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => { setDirection(i > current ? 1 : -1); setCurrent(i); }}
+                  className={`h-2 rounded-full transition-all duration-300 ${i === current ? 'w-6 bg-primary' : 'w-2 bg-muted-foreground/30'}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
@@ -167,50 +274,9 @@ const Index = () => {
           ))}
         </div>
       </section>
-
-      {/* Social Proof - Recent Winnings */}
+      {/* Social Proof - Recent Winnings Carousel */}
       {recentWinnings.length > 0 && (
-        <section className="bg-muted/30 py-10 sm:py-16 border-y border-border">
-          <div className="container mx-auto px-4">
-            <div className="mb-6 sm:mb-10 text-center">
-              <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
-                Últimos <span className="text-gradient-gold">Ganhos</span>
-              </h2>
-              <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">Confira os prêmios distribuídos nos últimos bolões</p>
-            </div>
-
-            <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-3">
-              {recentWinnings.map((winning, i) => (
-                <motion.div
-                  key={winning.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="rounded-2xl border border-primary/20 bg-card p-4 sm:p-6 shadow-lg relative overflow-hidden group"
-                >
-                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <Trophy className="h-12 w-12 sm:h-16 sm:w-16 text-primary" />
-                  </div>
-                  <div className="relative z-10">
-                    <div className="mb-3 sm:mb-4 inline-block rounded-full bg-primary/10 px-3 py-1 text-[10px] sm:text-xs font-bold text-primary uppercase tracking-wider">
-                      {winning.lottery_types?.name}
-                    </div>
-                    <h3 className="font-display text-base sm:text-lg font-bold text-foreground mb-1">{winning.title}</h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
-                      Sorteio em {winning.draw_date ? new Date(winning.draw_date).toLocaleDateString('pt-BR') : '—'}
-                    </p>
-                    <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border">
-                      <span className="text-xs text-muted-foreground block mb-1">Prêmio Total</span>
-                      <p className="font-display text-xl sm:text-2xl font-bold text-gradient-gold">
-                        R$ {Number(winning.prize_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <WinningsCarousel winnings={recentWinnings} />
       )}
 
       {/* Available Pools */}
