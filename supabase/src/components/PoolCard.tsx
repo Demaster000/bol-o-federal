@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Calendar, Trophy, TrendingUp, Edit2 } from 'lucide-react';
+import { Calendar, Trophy, TrendingUp } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
+import CountdownTimer from '@/components/CountdownTimer';
+import ShareButtons from '@/components/ShareButtons';
 
 interface PoolCardProps {
   pool: Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
@@ -53,19 +55,19 @@ const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
           )}
         </div>
 
-        <div className="flex-1 p-3 sm:p-6 flex flex-col gap-4">
-          <div className="space-y-2 sm:space-y-3">
+        <div className="flex-1 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
+          <div className="flex-1 space-y-2 sm:space-y-3">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-display text-sm sm:text-lg font-bold text-foreground break-words">{pool.title}</h3>
+                <h3 className="font-display text-base sm:text-lg font-bold text-foreground">{pool.title}</h3>
                 {isUnlimited && (
-                  <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded border border-primary/20 whitespace-nowrap">
-                    MAIS CHANCES
+                  <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded border border-primary/20">
+                    MAIS CHANCES DE GANHARMOS
                   </span>
                 )}
               </div>
               {pool.description && (
-                <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap break-words max-h-20 overflow-y-auto">{pool.description}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap break-words max-h-24 overflow-y-auto">{pool.description}</p>
               )}
             </div>
 
@@ -73,18 +75,18 @@ const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
               {prizeAmount > 0 && (
                 <div className="rounded-lg bg-muted/50 p-2 sm:p-3">
                   <div className="flex items-center gap-1 text-muted-foreground mb-1">
-                    <Trophy className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
-                    <span className="truncate">Prêmio</span>
+                    <Trophy className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    <span>Prêmio</span>
                   </div>
-                  <p className="font-display font-bold text-foreground text-xs sm:text-sm break-words">
+                  <p className="font-display font-bold text-foreground text-xs sm:text-sm">
                     R$ {prizeAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
               )}
               <div className="rounded-lg bg-muted/50 p-2 sm:p-3">
                 <div className="flex items-center gap-1 text-muted-foreground mb-1">
-                  <TrendingUp className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
-                  <span className="truncate">Est. cota</span>
+                  <TrendingUp className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                  <span>Est. por cota</span>
                 </div>
                 <p className="font-display font-bold text-primary text-xs sm:text-sm">
                   {estimatedPerQuota > 0
@@ -94,8 +96,8 @@ const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
               </div>
               <div className="rounded-lg bg-muted/50 p-2 sm:p-3">
                 <div className="flex items-center gap-1 text-muted-foreground mb-1">
-                  <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
-                  <span className="truncate">Sorteio</span>
+                  <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                  <span>Sorteio</span>
                 </div>
                 <p className="font-display font-bold text-foreground text-xs sm:text-sm">
                   {pool.draw_date
@@ -104,22 +106,30 @@ const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
                 </p>
               </div>
             </div>
+
+            {/* Countdown Timer */}
+            {pool.draw_date && pool.status === 'open' && (
+              <CountdownTimer drawDate={pool.draw_date} />
+            )}
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-border">
+          <div className="flex items-end justify-between sm:flex-col gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 sm:border-l border-border sm:pl-6 flex-shrink-0">
             <div>
               <span className="text-xs text-muted-foreground">Valor por cota</span>
               <p className="font-display font-bold text-lg sm:text-xl text-gradient-gold">
                 R$ {pool.price_per_quota.toFixed(2)}
               </p>
             </div>
-            <Button
-              onClick={() => onBuy(pool)}
-              disabled={isClosed}
-              className={`w-full sm:w-auto text-xs sm:text-sm h-9 sm:h-10 ${isClosed ? '' : `bg-gradient-to-r ${gradient} hover:opacity-90 text-primary-foreground`}`}
-            >
-              {isSoldOut ? 'ESGOTADO' : (isClosed ? (pool.status === 'drawn' ? 'Encerrado' : 'Fechado') : 'Comprar Cota')}
-            </Button>
+            <div className="flex items-center gap-1">
+              <ShareButtons poolId={pool.id} title={pool.title} price={pool.price_per_quota} prize={pool.prize_amount} compact />
+              <Button
+                onClick={() => onBuy(pool)}
+                disabled={isClosed}
+                className={`text-xs sm:text-sm ${isClosed ? '' : `bg-gradient-to-r ${gradient} hover:opacity-90 text-primary-foreground`}`}
+              >
+                {isSoldOut ? 'ESGOTADO' : (isClosed ? (pool.status === 'drawn' ? 'Encerrado' : 'Fechado') : 'Comprar Cota')}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

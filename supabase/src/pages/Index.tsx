@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Trophy, Star, Shield, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trophy, Star, Shield, Zap, ChevronLeft, ChevronRight, HelpCircle, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
@@ -10,6 +10,8 @@ import Header from '@/components/Header';
 import PoolCard from '@/components/PoolCard';
 import BuyQuotaDialog from '@/components/BuyQuotaDialog';
 import WhatsAppPopup from '@/components/WhatsAppPopup';
+import TestimonialsSection from '@/components/TestimonialsSection';
+import PoolFilters from '@/components/PoolFilters';
 
 type PoolWithType = Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
 
@@ -144,20 +146,16 @@ const Index = () => {
   const [recentWinnings, setRecentWinnings] = useState<PoolWithType[]>([]);
   const [selectedPool, setSelectedPool] = useState<PoolWithType | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [filters, setFilters] = useState<{ lotteryTypeId?: string; priceRange?: string }>({});
 
-  // Check for pool parameter in URL and handle auto-open
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const poolId = params.get('pool');
-    
     if (poolId) {
-      // If not logged in, redirect to login with the current pool as redirect param
       if (!user && !authLoading) {
         window.location.href = `/login?pool=${poolId}`;
         return;
       }
-      
-      // If logged in and we have pools, open the dialog
       if (user && pools.length > 0) {
         const pool = pools.find(p => p.id === poolId);
         if (pool) {
@@ -174,9 +172,7 @@ const Index = () => {
       .select('*, lottery_types(*)')
       .eq('status', 'open')
       .order('created_at', { ascending: false });
-    if (data) {
-      setPools(data as PoolWithType[]);
-    }
+    if (data) setPools(data as PoolWithType[]);
 
     const { data: winnings } = await supabase
       .from('pools')
@@ -185,27 +181,38 @@ const Index = () => {
       .not('prize_amount', 'is', null)
       .gt('prize_amount', 0)
       .order('updated_at', { ascending: false })
-      .limit(3);
+      .limit(9);
     if (winnings) setRecentWinnings(winnings as PoolWithType[]);
   };
 
   useEffect(() => { fetchPools(); }, []);
 
+  const filteredPools = useMemo(() => {
+    let result = pools;
+    if (filters.lotteryTypeId && filters.lotteryTypeId !== 'all') {
+      result = result.filter(p => p.lottery_type_id === filters.lotteryTypeId);
+    }
+    if (filters.priceRange && filters.priceRange !== 'all') {
+      const [min, max] = filters.priceRange.includes('+')
+        ? [parseFloat(filters.priceRange), Infinity]
+        : filters.priceRange.split('-').map(Number);
+      result = result.filter(p => p.price_per_quota >= min && p.price_per_quota <= (max || Infinity));
+    }
+    return result;
+  }, [pools, filters]);
+
   const handleBuy = (pool: Tables<'pools'>) => {
     if (!user) {
-      // Redirecionar para login com URL de retorno
       window.location.href = `/login?pool=${pool.id}`;
       return;
     }
     setSelectedPool(pool as PoolWithType);
     setDialogOpen(true);
-    // Update URL to reflect selected pool
     window.history.replaceState({}, '', `/?pool=${pool.id}`);
   };
 
   const handleDialogClose = () => {
     setDialogOpen(false);
-    // Remove pool parameter from URL when dialog closes
     window.history.replaceState({}, '', '/');
   };
 
@@ -222,11 +229,7 @@ const Index = () => {
         </div>
 
         <div className="container relative mx-auto px-4 py-12 sm:py-24 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <div className="mb-4 sm:mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm text-muted-foreground">
               <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-secondary" />
               A melhor plataforma de bolões do Brasil
@@ -292,10 +295,12 @@ const Index = () => {
           ))}
         </div>
       </section>
+
       {/* Social Proof - Recent Winnings Carousel */}
-      {recentWinnings.length > 0 && (
-        <WinningsCarousel winnings={recentWinnings} />
-      )}
+      {recentWinnings.length > 0 && <WinningsCarousel winnings={recentWinnings} />}
+
+      {/* Testimonials */}
+      <TestimonialsSection />
 
       {/* Available Pools */}
       <section className="container mx-auto px-4 py-10 sm:py-16">
@@ -306,9 +311,11 @@ const Index = () => {
           <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">Escolha seu bolão e garanta suas cotas</p>
         </div>
 
-        {pools.length > 0 ? (
+        <PoolFilters onFilter={setFilters} />
+
+        {filteredPools.length > 0 ? (
           <div className="grid gap-6 w-full">
-            {pools.map((pool) => (
+            {filteredPools.map((pool) => (
               <PoolCard key={pool.id} pool={pool} onBuy={handleBuy} />
             ))}
           </div>
@@ -316,30 +323,34 @@ const Index = () => {
           <div className="rounded-xl border border-border bg-card p-12 text-center">
             <Trophy className="mx-auto h-12 w-12 text-muted-foreground/40" />
             <p className="mt-4 text-lg text-muted-foreground">
-              Nenhum bolão disponível no momento.
+              {pools.length > 0 ? 'Nenhum bolão encontrado com esses filtros.' : 'Nenhum bolão disponível no momento.'}
             </p>
             <p className="text-sm text-muted-foreground/60">Volte em breve para novas oportunidades!</p>
           </div>
         )}
       </section>
 
-      <BuyQuotaDialog
-        pool={selectedPool}
-        open={dialogOpen}
-        onClose={handleDialogClose}
-        onSuccess={fetchPools}
-      />
-
+      <BuyQuotaDialog pool={selectedPool} open={dialogOpen} onClose={handleDialogClose} onSuccess={fetchPools} />
       <WhatsAppPopup />
 
       {/* Footer */}
-      <footer className="border-t border-border bg-card/30 py-8 text-center text-sm text-muted-foreground">
+      <footer className="border-t border-border bg-card/30 py-8">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-center gap-2">
-            <Trophy className="h-4 w-4 text-primary" />
-            <span className="font-display font-semibold text-gradient-gold">Sorte Compartilhada</span>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-4 w-4 text-primary" />
+              <span className="font-display font-semibold text-gradient-gold">Sorte Compartilhada</span>
+            </div>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <Link to="/faq" className="hover:text-foreground transition-colors flex items-center gap-1">
+                <HelpCircle className="h-3 w-3" /> FAQ
+              </Link>
+              <Link to="/resultados" className="hover:text-foreground transition-colors flex items-center gap-1">
+                <History className="h-3 w-3" /> Resultados
+              </Link>
+            </div>
           </div>
-          <p className="mt-2">© 2026 Sorte Compartilhada. Todos os direitos reservados.</p>
+          <p className="mt-4 text-center text-sm text-muted-foreground">© 2026 Sorte Compartilhada. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>

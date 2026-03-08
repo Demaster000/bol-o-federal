@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
-import { LogOut, Settings, User, Menu, Home, Trophy } from 'lucide-react';
+import { LogOut, Settings, User, Menu, Home, Trophy, HelpCircle, History } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
 const Header = () => {
   const { user, isAdmin, signOut } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
 
@@ -26,34 +25,36 @@ const Header = () => {
         <>
           {mobile ? (
             <>
-              <Link
-                to="/login"
-                onClick={() => setOpen(false)}
-                className={`${baseClass} ${isActive('/login') ? activeClass : inactiveClass}`}
-              >
-                <User className="h-5 w-5" />
-                Entrar
+              <Link to="/resultados" onClick={() => setOpen(false)} className={`${baseClass} ${isActive('/resultados') ? activeClass : inactiveClass}`}>
+                <History className="h-5 w-5" /> Resultados
               </Link>
-              <Link
-                to="/register"
-                onClick={() => setOpen(false)}
-                className={`${baseClass} ${isActive('/register') ? activeClass : inactiveClass}`}
-              >
-                <Trophy className="h-5 w-5" />
-                Cadastrar
+              <Link to="/faq" onClick={() => setOpen(false)} className={`${baseClass} ${isActive('/faq') ? activeClass : inactiveClass}`}>
+                <HelpCircle className="h-5 w-5" /> FAQ
+              </Link>
+              <Link to="/login" onClick={() => setOpen(false)} className={`${baseClass} ${isActive('/login') ? activeClass : inactiveClass}`}>
+                <User className="h-5 w-5" /> Entrar
+              </Link>
+              <Link to="/register" onClick={() => setOpen(false)} className={`${baseClass} ${isActive('/register') ? activeClass : inactiveClass}`}>
+                <Trophy className="h-5 w-5" /> Cadastrar
               </Link>
             </>
           ) : (
             <>
-              <Link to="/login">
+              <Link to="/resultados">
                 <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                  Entrar
+                  <History className="mr-1.5 h-4 w-4" /> Resultados
                 </Button>
               </Link>
-              <Link to="/register">
-                <Button size="sm" className="bg-gradient-green hover:opacity-90 text-primary-foreground">
-                  Cadastrar
+              <Link to="/faq">
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                  <HelpCircle className="mr-1.5 h-4 w-4" /> FAQ
                 </Button>
+              </Link>
+              <Link to="/login">
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">Entrar</Button>
+              </Link>
+              <Link to="/register">
+                <Button size="sm" className="bg-gradient-green hover:opacity-90 text-primary-foreground">Cadastrar</Button>
               </Link>
             </>
           )}
@@ -65,59 +66,48 @@ const Header = () => {
       <>
         {mobile ? (
           <>
-            <Link
-              to="/"
-              onClick={() => setOpen(false)}
-              className={`${baseClass} ${isActive('/') ? activeClass : inactiveClass}`}
-            >
-              <Home className="h-5 w-5" />
-              Início
+            <Link to="/" onClick={() => setOpen(false)} className={`${baseClass} ${isActive('/') ? activeClass : inactiveClass}`}>
+              <Home className="h-5 w-5" /> Início
             </Link>
-            <Link
-              to="/dashboard"
-              onClick={() => setOpen(false)}
-              className={`${baseClass} ${isActive('/dashboard') ? activeClass : inactiveClass}`}
-            >
-              <User className="h-5 w-5" />
-              Meus Bolões
+            <Link to="/dashboard" onClick={() => setOpen(false)} className={`${baseClass} ${isActive('/dashboard') ? activeClass : inactiveClass}`}>
+              <User className="h-5 w-5" /> Meus Bolões
+            </Link>
+            <Link to="/resultados" onClick={() => setOpen(false)} className={`${baseClass} ${isActive('/resultados') ? activeClass : inactiveClass}`}>
+              <History className="h-5 w-5" /> Resultados
+            </Link>
+            <Link to="/faq" onClick={() => setOpen(false)} className={`${baseClass} ${isActive('/faq') ? activeClass : inactiveClass}`}>
+              <HelpCircle className="h-5 w-5" /> FAQ
             </Link>
             {isAdmin && (
-              <Link
-                to="/admin"
-                onClick={() => setOpen(false)}
-                className={`${baseClass} ${isActive('/admin') ? activeClass : inactiveClass}`}
-              >
-                <Settings className="h-5 w-5" />
-                Painel Admin
+              <Link to="/admin" onClick={() => setOpen(false)} className={`${baseClass} ${isActive('/admin') ? activeClass : inactiveClass}`}>
+                <Settings className="h-5 w-5" /> Painel Admin
               </Link>
             )}
-            <button
-              onClick={() => { signOut(); setOpen(false); }}
-              className={`${baseClass} ${inactiveClass} w-full text-left`}
-            >
-              <LogOut className="h-5 w-5" />
-              Sair
+            <button onClick={() => { signOut(); setOpen(false); }} className={`${baseClass} ${inactiveClass} w-full text-left`}>
+              <LogOut className="h-5 w-5" /> Sair
             </button>
           </>
         ) : (
           <>
             <Link to="/dashboard">
               <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                <User className="mr-1.5 h-4 w-4" />
-                Meus Bolões
+                <User className="mr-1.5 h-4 w-4" /> Meus Bolões
+              </Button>
+            </Link>
+            <Link to="/resultados">
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                <History className="mr-1.5 h-4 w-4" /> Resultados
               </Button>
             </Link>
             {isAdmin && (
               <Link to="/admin">
                 <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                  <Settings className="mr-1.5 h-4 w-4" />
-                  Admin
+                  <Settings className="mr-1.5 h-4 w-4" /> Admin
                 </Button>
               </Link>
             )}
             <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground">
-              <LogOut className="mr-1.5 h-4 w-4" />
-              Sair
+              <LogOut className="mr-1.5 h-4 w-4" /> Sair
             </Button>
           </>
         )}
@@ -132,12 +122,10 @@ const Header = () => {
           <img src={logo} alt="Sorte Compartilhada" className="h-14 sm:h-16 w-auto" />
         </Link>
 
-        {/* Desktop nav */}
         <nav className="hidden sm:flex items-center gap-3">
           <NavItems />
         </nav>
 
-        {/* Mobile hamburger */}
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild className="sm:hidden">
             <Button variant="ghost" size="icon" className="text-foreground">
