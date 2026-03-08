@@ -31,6 +31,7 @@ const AdminWhatsApp = () => {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [broadcasting, setBroadcasting] = useState(false);
+  const [broadcastingReferral, setBroadcastingReferral] = useState(false);
   const [customMessage, setCustomMessage] = useState('');
   const [sendingCustom, setSendingCustom] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
