@@ -13,6 +13,7 @@ const Login = () => {
   const initialMode = (searchParams.get('mode') as 'login' | 'register') || 'login';
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -70,7 +71,7 @@ const Login = () => {
     }
 
     setLoading(true);
-    const { error } = await signUp(email, password, fullName);
+    const { error } = await signUp(email, password, fullName, phone);
     setLoading(false);
     
     if (error) {
@@ -206,6 +207,18 @@ const Login = () => {
                   placeholder="Seu nome"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
+                  required
+                  className="bg-muted"
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="register-phone">WhatsApp</Label>
+                <Input
+                  id="register-phone"
+                  placeholder="(00) 00000-0000"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   required
                   className="bg-muted"
                   disabled={loading}

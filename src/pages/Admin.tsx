@@ -282,8 +282,15 @@ const Admin = () => {
     if (purchases && purchases.length > 0) {
       const userIds = [...new Set(purchases.map(p => p.user_id))];
       const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', userIds);
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) ?? []);
-      setPoolPurchases(purchases.map(p => ({ ...p, profile_name: profileMap.get(p.user_id) ?? undefined })));
+      const profileMap = new Map(profiles?.map(p => [p.user_id, { name: p.full_name, phone: p.phone }]) ?? []);
+      setPoolPurchases(purchases.map(p => {
+        const profile = profileMap.get(p.user_id);
+        return { 
+          ...p, 
+          profile_name: profile?.name ?? undefined,
+          profile_phone: profile?.phone ?? undefined
+        };
+      }));
     } else {
       setPoolPurchases([]);
     }
@@ -625,9 +632,16 @@ const Admin = () => {
                   <div key={p.id} className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
                     <div>
                       <p className="font-medium text-foreground">{p.profile_name ?? 'Usuário'}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(p.created_at!).toLocaleDateString('pt-BR')}
-                      </p>
+                      <div className="flex flex-col">
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(p.created_at!).toLocaleDateString('pt-BR')}
+                        </p>
+                        {p.profile_phone && (
+                          <p className="text-xs text-primary font-medium flex items-center gap-1 mt-0.5">
+                            <MessageSquare className="h-3 w-3" /> {p.profile_phone}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <div className="text-right">
                       <p className="flex items-center gap-1">

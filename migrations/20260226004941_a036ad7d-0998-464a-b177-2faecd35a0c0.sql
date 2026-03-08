@@ -29,6 +29,7 @@ CREATE TABLE public.prize_claims (
   pix_key TEXT NOT NULL,
   amount NUMERIC NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
+  rejection_reason TEXT,
   accepted_terms BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );

@@ -302,6 +302,39 @@ const AdminClaims = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Rejection Reason Dialog */}
+      <Dialog open={rejectionDialog.open} onOpenChange={(o) => !o && setRejectionDialog({ open: false, claimId: '', reason: '' })}>
+        <DialogContent className="bg-card border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Motivo da Recusa</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Informe o motivo pelo qual esta solicitação de pagamento está sendo recusada. O usuário poderá visualizar este motivo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="rejection-reason" className="mb-2 block">Motivo *</Label>
+            <Textarea
+              id="rejection-reason"
+              placeholder="Ex: CPF não confere com a chave PIX informada."
+              className="bg-muted min-h-[100px]"
+              value={rejectionDialog.reason}
+              onChange={(e) => setRejectionDialog({ ...rejectionDialog, reason: e.target.value })}
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-border">
+            <Button variant="outline" onClick={() => setRejectionDialog({ open: false, claimId: '', reason: '' })}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleConfirmRejection} 
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Confirmar Recusa
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

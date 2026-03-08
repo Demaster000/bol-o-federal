@@ -89,7 +89,7 @@ const Admin = () => {
     }
 
     setFormLoading(true);
-    const { error } = await supabase.from('pools').insert({
+    const { data: newPool, error } = await supabase.from('pools').insert({
       lottery_type_id: form.lottery_type_id,
       title: form.title,
       description: form.description || null,
@@ -98,7 +98,8 @@ const Admin = () => {
       draw_date: form.draw_date || null,
       unlimited_quotas: form.unlimited_quotas,
       total_quotas: form.unlimited_quotas ? 999999 : totalQuotasVal,
-    });
+    }).select().single();
+    
     setFormLoading(false);
     if (error) {
       console.error('Create pool error:', error);
@@ -106,15 +107,28 @@ const Admin = () => {
     } else {
       toast({ title: 'Bolão criado!' });
       // Trigger WhatsApp notification for new pool
-      try {
-        const { data: session } = await supabase.auth.getSession();
-        const token = session?.session?.access_token;
-        fetch(`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/whatsapp-send`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ type: 'new_pool', data: { id: data.id, title: form.title, price: parseFloat(form.price_per_quota), prize: parseFloat(form.prize_amount), draw_date: form.draw_date } }),
-        }).catch(console.error);
-      } catch {}
+      if (newPool) {
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          const token = session?.session?.access_token;
+          fetch(`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/whatsapp-send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ 
+              type: 'new_pool', 
+              data: { 
+                id: newPool.id, 
+                title: form.title, 
+                price: parseFloat(form.price_per_quota), 
+                prize: parseFloat(form.prize_amount), 
+                draw_date: form.draw_date 
+              } 
+            }),
+          }).catch(console.error);
+        } catch (err) {
+          console.error('WhatsApp notification error:', err);
+        }
+      }
       setCreateOpen(false);
       setForm({ lottery_type_id: '', title: '', description: '', price_per_quota: '', prize_amount: '', draw_date: '', unlimited_quotas: false, total_quotas: '100' });
       fetchData();
@@ -268,8 +282,15 @@ const Admin = () => {
     if (purchases && purchases.length > 0) {
       const userIds = [...new Set(purchases.map(p => p.user_id))];
       const { data: profiles } = await supabase.from('profiles').select('*').in('user_id', userIds);
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) ?? []);
-      setPoolPurchases(purchases.map(p => ({ ...p, profile_name: profileMap.get(p.user_id) ?? undefined })));
+      const profileMap = new Map(profiles?.map(p => [p.user_id, { name: p.full_name, phone: p.phone }]) ?? []);
+      setPoolPurchases(purchases.map(p => {
+        const profile = profileMap.get(p.user_id);
+        return { 
+          ...p, 
+          profile_name: profile?.name ?? undefined,
+          profile_phone: profile?.phone ?? undefined
+        };
+      }));
     } else {
       setPoolPurchases([]);
     }
@@ -611,9 +632,16 @@ const Admin = () => {
                   <div key={p.id} className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
                     <div>
                       <p className="font-medium text-foreground">{p.profile_name ?? 'Usuário'}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(p.created_at!).toLocaleDateString('pt-BR')}
-                      </p>
+                      <div className="flex flex-col">
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(p.created_at!).toLocaleDateString('pt-BR')}
+                        </p>
+                        {p.profile_phone && (
+                          <p className="text-xs text-primary font-medium flex items-center gap-1 mt-0.5">
+                            <MessageSquare className="h-3 w-3" /> {p.profile_phone}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <div className="text-right">
                       <p className="flex items-center gap-1">

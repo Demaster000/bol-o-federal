@@ -9,6 +9,7 @@ import { Trophy } from 'lucide-react';
 
 const Register = () => {
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,7 +24,7 @@ const Register = () => {
       return;
     }
     setLoading(true);
-    const { error } = await signUp(email, password, fullName);
+    const { error } = await signUp(email, password, fullName, phone);
     setLoading(false);
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
@@ -58,6 +59,17 @@ const Register = () => {
               placeholder="Seu nome"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
+              required
+              className="bg-muted"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">WhatsApp</Label>
+            <Input
+              id="phone"
+              placeholder="(00) 00000-0000"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               required
               className="bg-muted"
             />

@@ -15,7 +15,7 @@ type PurchaseWithPool = Tables<'pool_purchases'> & {
 const Dashboard = () => {
   const { user } = useAuth();
   const [purchases, setPurchases] = useState<PurchaseWithPool[]>([]);
-  const [claimedPurchases, setClaimedPurchases] = useState<Map<string, string>>(new Map());
+  const [claimedPurchases, setClaimedPurchases] = useState<Map<string, { status: string; reason?: string }>>(new Map());
   const [notifications, setNotifications] = useState<Tables<'notifications'>[]>([]);
   const [claimDialog, setClaimDialog] = useState<{
     open: boolean;
@@ -37,7 +37,7 @@ const Dashboard = () => {
         .order('created_at', { ascending: false }),
       supabase
         .from('prize_claims')
-        .select('purchase_id, status')
+        .select('purchase_id, status, rejection_reason')
         .eq('user_id', user.id),
       supabase
         .from('notifications')
@@ -47,9 +47,9 @@ const Dashboard = () => {
     ]);
     if (purchasesRes.data) setPurchases(purchasesRes.data as PurchaseWithPool[]);
     if (claimsRes.data) {
-      const map = new Map<string, string>();
+      const map = new Map<string, { status: string; reason?: string }>();
       claimsRes.data.forEach((c: any) => {
-        if (c.purchase_id) map.set(c.purchase_id, c.status);
+        if (c.purchase_id) map.set(c.purchase_id, { status: c.status, reason: c.rejection_reason });
       });
       setClaimedPurchases(map);
     }
@@ -68,13 +68,16 @@ const Dashboard = () => {
     if (!user) return;
     const { data } = await supabase
       .from('prize_claims')
-      .select('purchase_id, status')
+      .select('purchase_id, status, rejection_reason')
       .eq('user_id', user.id)
       .eq('purchase_id', purchaseId)
       .single();
 
     if (data) {
-      setClaimedPurchases(prev => new Map(prev).set(purchaseId, (data as any).status));
+      setClaimedPurchases(prev => new Map(prev).set(purchaseId, { 
+        status: (data as any).status, 
+        reason: (data as any).rejection_reason 
+      }));
     }
   };
 
@@ -172,7 +175,9 @@ const Dashboard = () => {
               const prizeForUser = calcPrizePerQuota(p.pools, p.quantity);
               const estimatePerQuota = calcEstimatePerQuota(p.pools);
               const alreadyClaimed = claimedPurchases.has(p.id);
-              const claimStatus = claimedPurchases.get(p.id);
+              const claimData = claimedPurchases.get(p.id);
+              const claimStatus = claimData?.status;
+              const rejectionReason = claimData?.reason;
 
               return (
                 <motion.div
@@ -267,12 +272,19 @@ const Dashboard = () => {
                                 claimStatus === 'rejected' ? 'text-red-400' :
                                 'text-yellow-400'
                               }`}>
-                                {claimStatus === 'pending' ? 'Pendente' :
-                                 claimStatus === 'in_progress' ? 'Em Progresso' :
-                                 claimStatus === 'paid' ? 'Pago' :
-                                 claimStatus === 'rejected' ? 'Rejeitado' : claimStatus}
+                                {claimStatus === 'paid' ? 'Pago' :
+                                 claimStatus === 'in_progress' ? 'Em processamento' :
+                                 claimStatus === 'rejected' ? 'Recusado' :
+                                 'Pendente'}
                               </span>
                             </p>
+                            {claimStatus === 'rejected' && rejectionReason && (
+                              <div className="mt-1 rounded bg-red-500/10 border border-red-500/20 p-2">
+                                <p className="text-[10px] text-red-400 leading-tight">
+                                  <span className="font-bold">Motivo da recusa:</span> {rejectionReason}
+                                </p>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <Button
