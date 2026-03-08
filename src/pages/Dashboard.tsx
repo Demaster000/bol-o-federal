@@ -166,7 +166,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto px-4 py-10">
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-10">
         {notifications.length > 0 && (
           <div className="mb-6 space-y-2">
             {notifications.filter(n => !n.read).map(n => (
@@ -183,7 +183,7 @@ const Dashboard = () => {
           </div>
         )}
 
-        <h1 className="font-display text-3xl font-bold text-foreground mb-8">
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-6 sm:mb-8">
           Meus <span className="text-gradient-gold">Bolões</span>
         </h1>
 

@@ -333,24 +333,26 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto px-4 py-10">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="font-display text-3xl font-bold text-foreground">
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-10">
+        <div className="flex items-center justify-between mb-6 sm:mb-8 gap-3">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
             Painel <span className="text-gradient-gold">Admin</span>
           </h1>
-          <Button onClick={() => setCreateOpen(true)} className="bg-gradient-green hover:opacity-90 text-primary-foreground">
-            <Plus className="mr-1.5 h-4 w-4" /> Novo Bolão
+          <Button onClick={() => setCreateOpen(true)} size="sm" className="bg-gradient-green hover:opacity-90 text-primary-foreground shrink-0">
+            <Plus className="mr-1 h-4 w-4" /> <span className="hidden sm:inline">Novo Bolão</span><span className="sm:hidden">Novo</span>
           </Button>
         </div>
 
-        <Tabs defaultValue="pools" className="space-y-6">
-          <TabsList className="bg-muted flex-wrap">
-            <TabsTrigger value="pools">Bolões</TabsTrigger>
-            <TabsTrigger value="claims"><DollarSign className="mr-1 h-3.5 w-3.5" /> Pagamentos</TabsTrigger>
-            <TabsTrigger value="lotteries">Modalidades</TabsTrigger>
-            <TabsTrigger value="pix-settings">PIX / Mercado Pago</TabsTrigger>
-            <TabsTrigger value="whatsapp"><MessageSquare className="mr-1 h-3.5 w-3.5" /> WhatsApp</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="pools" className="space-y-4 sm:space-y-6">
+          <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+            <TabsList className="bg-muted inline-flex w-auto min-w-full sm:min-w-0">
+              <TabsTrigger value="pools" className="text-xs sm:text-sm whitespace-nowrap">Bolões</TabsTrigger>
+              <TabsTrigger value="claims" className="text-xs sm:text-sm whitespace-nowrap"><DollarSign className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> Pagamentos</TabsTrigger>
+              <TabsTrigger value="lotteries" className="text-xs sm:text-sm whitespace-nowrap">Modalidades</TabsTrigger>
+              <TabsTrigger value="pix-settings" className="text-xs sm:text-sm whitespace-nowrap">PIX</TabsTrigger>
+              <TabsTrigger value="whatsapp" className="text-xs sm:text-sm whitespace-nowrap"><MessageSquare className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> WhatsApp</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="pools">
             <div className="grid gap-4">
@@ -360,53 +362,54 @@ const Admin = () => {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.03 }}
-                  className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-border bg-card p-5"
+                  className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-3"
                 >
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-display font-bold text-foreground">{pool.title}</h3>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${statusColor[pool.status ?? 'open']}`}>
+                      <h3 className="font-display font-bold text-foreground text-sm sm:text-base">{pool.title}</h3>
+                      <span className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full ${statusColor[pool.status ?? 'open']}`}>
                         {statusLabel[pool.status ?? 'open']}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       {pool.lottery_types?.name} • R$ {pool.price_per_quota.toFixed(2)}/cota •{' '}
-                      {pool.sold_quotas ?? 0} cotas vendidas
+                      {pool.sold_quotas ?? 0} vendidas
                       {pool.prize_amount ? ` • Prêmio: R$ ${Number(pool.prize_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : ''}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Button variant="outline" size="sm" onClick={() => handleViewPurchases(pool)}>
-                      <Eye className="mr-1 h-3.5 w-3.5" /> Detalhes
+                  <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border">
+                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => handleViewPurchases(pool)}>
+                      <Eye className="mr-1 h-3 w-3" /> Detalhes
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleOpenEditDialog(pool)}>
-                      <Pencil className="mr-1 h-3.5 w-3.5" /> Editar
+                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => handleOpenEditDialog(pool)}>
+                      <Pencil className="mr-1 h-3 w-3" /> Editar
                     </Button>
                     {pool.status === 'open' && (
-                      <Button variant="outline" size="sm" onClick={() => handleClosePool(pool)}>
+                      <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => handleClosePool(pool)}>
                         Fechar
                       </Button>
                     )}
                     {(pool.status === 'open' || pool.status === 'closed') && (
                       <Button
                         size="sm"
-                        className="bg-gradient-gold text-secondary-foreground hover:opacity-90"
+                        className="bg-gradient-gold text-secondary-foreground hover:opacity-90 text-xs h-8"
                         onClick={() => {
                           setSelectedPool(pool);
                           setPrizeAmount(pool.prize_amount ? String(pool.prize_amount) : '');
                           setResultOpen(true);
                         }}
                       >
-                        <Trophy className="mr-1 h-3.5 w-3.5" /> Resultado
+                        <Trophy className="mr-1 h-3 w-3" /> Resultado
                       </Button>
                     )}
                     <Button
                       variant="destructive"
                       size="sm"
+                      className="text-xs h-8"
                       onClick={() => handleDeletePool(pool)}
                       disabled={formLoading}
                     >
-                      <Trash2 className="mr-1 h-3.5 w-3.5" /> Excluir
+                      <Trash2 className="mr-1 h-3 w-3" /> Excluir
                     </Button>
                   </div>
                 </motion.div>
@@ -495,10 +498,10 @@ const Admin = () => {
 
       {/* Create Pool Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] flex flex-col">
+        <DialogContent className="bg-card border-border w-[95vw] max-w-lg max-h-[90vh] flex flex-col p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">Criar Novo Bolão</DialogTitle>
-            <DialogDescription className="text-muted-foreground">Preencha os dados para criar um novo bolão.</DialogDescription>
+            <DialogTitle className="font-display text-lg sm:text-xl">Criar Novo Bolão</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs sm:text-sm">Preencha os dados para criar um novo bolão.</DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-4">
             <div className="space-y-4 py-2">
@@ -574,10 +577,10 @@ const Admin = () => {
 
       {/* Result Dialog */}
       <Dialog open={resultOpen} onOpenChange={setResultOpen}>
-        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] flex flex-col">
+        <DialogContent className="bg-card border-border w-[95vw] max-w-lg max-h-[90vh] flex flex-col p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">Publicar Resultado</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            <DialogTitle className="font-display text-lg sm:text-xl">Publicar Resultado</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs sm:text-sm">
               Informe os números sorteados para o bolão: {selectedPool?.title}
             </DialogDescription>
           </DialogHeader>
@@ -605,10 +608,10 @@ const Admin = () => {
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="bg-card border-border max-w-lg">
+        <DialogContent className="bg-card border-border w-[95vw] max-w-lg max-h-[85vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">Detalhes do Bolão</DialogTitle>
-            <DialogDescription className="text-muted-foreground">Informações e participantes do bolão.</DialogDescription>
+            <DialogTitle className="font-display text-lg sm:text-xl">Detalhes do Bolão</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs sm:text-sm">Informações e participantes do bolão.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="rounded-lg bg-muted p-4 space-y-1">
@@ -662,10 +665,10 @@ const Admin = () => {
 
       {/* Edit Pool Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] flex flex-col">
+        <DialogContent className="bg-card border-border w-[95vw] max-w-lg max-h-[90vh] flex flex-col p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">Editar Bolão</DialogTitle>
-            <DialogDescription className="text-muted-foreground">Atualize os dados do bolão.</DialogDescription>
+            <DialogTitle className="font-display text-lg sm:text-xl">Editar Bolão</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs sm:text-sm">Atualize os dados do bolão.</DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-4">
             <div className="space-y-4 py-2">
