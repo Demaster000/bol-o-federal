@@ -195,7 +195,7 @@ const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
             disabled={isClosed}
             className={`text-xs sm:text-sm ${isClosed ? '' : `bg-gradient-to-r ${gradient} hover:opacity-90 text-primary-foreground`}`}
           >
-            {isSoldOut ? 'ESGOTADO' : (isClosed ? (pool.status === 'drawn' ? 'Encerrado' : 'Fechado') : 'Comprar Cota')}
+            {isSoldOut ? 'ESGOTADO' : (isParticipationClosed ? 'Encerrado' : (isClosed ? (pool.status === 'drawn' ? 'Encerrado' : 'Fechado') : 'Comprar Cota'))}
           </Button>
         </div>
       </div>
