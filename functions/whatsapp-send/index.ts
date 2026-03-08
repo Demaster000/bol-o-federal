@@ -188,6 +188,13 @@ serve(async (req: Request) => {
     // Only service role key is treated as internal/cron call (anon key is public, not trusted)
     const isInternalCall = token === svcKey;
 
+    if (!isInternalCall && !authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!isInternalCall) {
       // It's a user JWT — validate admin role using getClaims
       const supabaseAuth = createClient(supabaseUrl, anonKey, {
