@@ -19,7 +19,7 @@ import AdminWhatsApp from '@/components/AdminWhatsApp';
 import { Navigate } from 'react-router-dom';
 
 type PoolWithType = Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
-type PurchaseWithProfile = Tables<'pool_purchases'> & { profile_name?: string };
+type PurchaseWithProfile = Tables<'pool_purchases'> & { profile_name?: string; profile_phone?: string };
 
 const Admin = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
