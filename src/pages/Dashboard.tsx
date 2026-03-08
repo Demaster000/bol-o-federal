@@ -184,7 +184,10 @@ const Dashboard = () => {
           </div>
         )}
 
-        <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-6 sm:mb-8">
+        {/* Referral Section */}
+        <ReferralSection />
+
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-6 sm:mb-8 mt-6">
           Meus <span className="text-gradient-gold">Bolões</span>
         </h1>
 
