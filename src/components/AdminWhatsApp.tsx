@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { MessageSquare, Send, TestTube, Save, Eye, EyeOff } from 'lucide-react';
+import { MessageSquare, Send, TestTube, Save, Eye, EyeOff, Gift } from 'lucide-react';
 
 interface WhatsAppSettings {
   id: string;
@@ -31,6 +31,7 @@ const AdminWhatsApp = () => {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [broadcasting, setBroadcasting] = useState(false);
+  const [broadcastingReferral, setBroadcastingReferral] = useState(false);
   const [customMessage, setCustomMessage] = useState('');
   const [sendingCustom, setSendingCustom] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -326,7 +327,7 @@ const AdminWhatsApp = () => {
       <div className="rounded-xl border border-border bg-card p-6 space-y-4">
         <h3 className="font-display text-lg font-bold text-foreground">Ações Manuais</h3>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             onClick={handleBroadcast}
@@ -334,6 +335,27 @@ const AdminWhatsApp = () => {
           >
             <Send className="mr-1.5 h-4 w-4" />
             {broadcasting ? 'Enviando...' : 'Divulgar Bolões Abertos'}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              setBroadcastingReferral(true);
+              try {
+                const result = await callWhatsApp('referral_broadcast');
+                if (result.success) {
+                  toast({ title: 'Enviado!', description: 'Mensagem de Indique e Ganhe enviada.' });
+                } else {
+                  toast({ title: 'Erro', description: result.error || result.reason, variant: 'destructive' });
+                }
+              } catch (err) {
+                toast({ title: 'Erro', description: String(err), variant: 'destructive' });
+              }
+              setBroadcastingReferral(false);
+            }}
+            disabled={broadcastingReferral || !settings.enabled || !isConfigured}
+          >
+            <Gift className="mr-1.5 h-4 w-4" />
+            {broadcastingReferral ? 'Enviando...' : 'Divulgar Indique e Ganhe'}
           </Button>
         </div>
 
