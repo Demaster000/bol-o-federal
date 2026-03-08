@@ -245,10 +245,23 @@ const Login = () => {
           ) : (
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="space-y-2">
+                <Label htmlFor="register-cpf">CPF</Label>
+                <Input
+                  id="register-cpf"
+                  placeholder="000.000.000-00"
+                  value={cpf}
+                  onChange={(e) => setCpf(formatCpf(e.target.value))}
+                  maxLength={14}
+                  required
+                  className="bg-muted"
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="register-name">Nome completo</Label>
                 <Input
                   id="register-name"
-                  placeholder="Seu nome"
+                  placeholder="Seu nome (conforme documento)"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
