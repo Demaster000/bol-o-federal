@@ -37,7 +37,40 @@ const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
   const prizeAmount = pool.prize_amount ? Number(pool.prize_amount) : 0;
   const netPrize = prizeAmount * 0.9;
   const estimatedPerQuota = soldQuotas > 0 && netPrize > 0 ? netPrize / soldQuotas : 0;
-  const isClosed = pool.status !== 'open' || isSoldOut;
+
+  // Check if participation window has closed (5 hours before draw)
+  const isParticipationClosed = pool.draw_date
+    ? new Date().getTime() >= new Date(pool.draw_date).getTime() - 5 * 60 * 60 * 1000
+    : false;
+  const isClosed = pool.status !== 'open' || isSoldOut || isParticipationClosed;
+
+  // Format draw date in BRT (UTC-3)
+  const formatDrawDateBRT = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('pt-BR', { 
+      day: '2-digit', month: '2-digit', 
+      timeZone: 'America/Sao_Paulo' 
+    });
+  };
+
+  const formatDrawTimeBRT = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('pt-BR', { 
+      hour: '2-digit', minute: '2-digit', 
+      timeZone: 'America/Sao_Paulo' 
+    });
+  };
+
+  // Participation deadline: 5 hours before draw in BRT
+  const getParticipationDeadline = (dateStr: string) => {
+    const drawDate = new Date(dateStr);
+    const deadline = new Date(drawDate.getTime() - 5 * 60 * 60 * 1000);
+    return deadline.toLocaleString('pt-BR', { 
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+      timeZone: 'America/Sao_Paulo' 
+    });
+  };
 
   return (
     <motion.div
@@ -127,15 +160,26 @@ const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
             </div>
             <p className="font-display font-bold text-foreground text-xs sm:text-sm">
               {pool.draw_date
-                ? new Date(pool.draw_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                ? formatDrawDateBRT(pool.draw_date)
                 : 'A definir'}
             </p>
+            {pool.draw_date && (
+              <p className="text-[10px] text-muted-foreground">
+                às {formatDrawTimeBRT(pool.draw_date)}
+              </p>
+            )}
           </div>
         </div>
 
         {/* Countdown Timer */}
-        {pool.draw_date && pool.status === 'open' && (
+        {pool.draw_date && pool.status === 'open' && !isParticipationClosed && (
           <CountdownTimer drawDate={pool.draw_date} compact />
+        )}
+        {pool.draw_date && isParticipationClosed && pool.status === 'open' && (
+          <div className="text-[10px] text-destructive font-bold flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            Participação encerrada (limite: {getParticipationDeadline(pool.draw_date)})
+          </div>
         )}
 
         {/* Footer: preço + botão */}
@@ -151,7 +195,7 @@ const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
             disabled={isClosed}
             className={`text-xs sm:text-sm ${isClosed ? '' : `bg-gradient-to-r ${gradient} hover:opacity-90 text-primary-foreground`}`}
           >
-            {isSoldOut ? 'ESGOTADO' : (isClosed ? (pool.status === 'drawn' ? 'Encerrado' : 'Fechado') : 'Comprar Cota')}
+            {isSoldOut ? 'ESGOTADO' : (isParticipationClosed ? 'Encerrado' : (isClosed ? (pool.status === 'drawn' ? 'Encerrado' : 'Fechado') : 'Comprar Cota'))}
           </Button>
         </div>
       </div>
