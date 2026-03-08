@@ -564,6 +564,9 @@ const Admin = () => {
                         <Trophy className="mr-1 h-3 w-3" /> Resultado
                       </Button>
                     )}
+                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => handleDuplicatePool(pool)} disabled={formLoading}>
+                      <Copy className="mr-1 h-3 w-3" /> Duplicar
+                    </Button>
                     <Button
                       variant="destructive"
                       size="sm"
