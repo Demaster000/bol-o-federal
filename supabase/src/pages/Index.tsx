@@ -10,7 +10,7 @@ import Header from '@/components/Header';
 import PoolCard from '@/components/PoolCard';
 import BuyQuotaDialog from '@/components/BuyQuotaDialog';
 import WhatsAppPopup from '@/components/WhatsAppPopup';
-import TestimonialsSection from '@/components/TestimonialsSection';
+
 import PoolFilters from '@/components/PoolFilters';
 
 type PoolWithType = Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
@@ -299,8 +299,6 @@ const Index = () => {
       {/* Social Proof - Recent Winnings Carousel */}
       {recentWinnings.length > 0 && <WinningsCarousel winnings={recentWinnings} />}
 
-      {/* Testimonials */}
-      <TestimonialsSection />
 
       {/* Available Pools */}
       <section className="container mx-auto px-4 py-10 sm:py-16">
