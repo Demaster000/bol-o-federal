@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, LogIn, UserPlus, Gift } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
 const Login = () => {
@@ -24,9 +24,10 @@ const Login = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Get redirect URL from query params
+  // Get redirect URL and referral code from query params
   const redirectUrl = searchParams.get('redirect') || '/';
   const poolId = searchParams.get('pool');
+  const refCode = searchParams.get('ref');
 
   // Build the redirect URL preserving the pool parameter
   const getRedirectUrl = () => {
@@ -71,7 +72,7 @@ const Login = () => {
     }
 
     setLoading(true);
-    const { error } = await signUp(email, password, fullName, phone);
+    const { error } = await signUp(email, password, fullName, phone, refCode || undefined);
     setLoading(false);
     
     if (error) {
@@ -115,6 +116,19 @@ const Login = () => {
               <p className="text-sm font-medium text-amber-900">Autenticação obrigatória</p>
               <p className="text-xs text-amber-800 mt-1">
                 Você precisa estar logado para comprar cotas do bolão.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Referral alert */}
+        {refCode && mode === 'register' && (
+          <div className="rounded-lg border border-primary/50 bg-primary/10 p-4 flex gap-3">
+            <Gift className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">Você foi indicado! 🎉</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Cadastre-se e ao comprar cotas, quem te indicou ganha 1 cota grátis do mesmo sorteio!
               </p>
             </div>
           </div>
