@@ -129,7 +129,7 @@ const Header = () => {
     <header className="sticky top-0 z-50 glass">
       <div className="container mx-auto flex items-center justify-between px-4 py-3">
         <Link to="/" className="flex items-center gap-2">
-          <img src={logo} alt="Sorte Compartilhada" className="h-10 sm:h-12 w-auto" />
+          <img src={logo} alt="Sorte Compartilhada" className="h-14 sm:h-16 w-auto" />
         </Link>
 
         {/* Desktop nav */}
@@ -148,7 +148,7 @@ const Header = () => {
             <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
             <div className="flex flex-col h-full">
               <div className="flex items-center gap-2 p-4 border-b border-border">
-                <img src={logo} alt="Sorte Compartilhada" className="h-8 w-auto" />
+                <img src={logo} alt="Sorte Compartilhada" className="h-12 w-auto" />
               </div>
               <nav className="flex-1 flex flex-col gap-1 p-3">
                 <NavItems mobile />
