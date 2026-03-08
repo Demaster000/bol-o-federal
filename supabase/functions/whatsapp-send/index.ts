@@ -26,6 +26,15 @@ function formatDateTimeBR(date: Date): string {
   return date.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+// Interpreta uma data do banco (sem timezone) como horário de Brasília (UTC-3)
+function parseDateAsBRT(dateStr: string): Date {
+  // Se a data não tem timezone info, adiciona o offset de BRT (-03:00)
+  if (!dateStr.includes('Z') && !dateStr.includes('+') && !/\d{2}:\d{2}:\d{2}-\d{2}/.test(dateStr)) {
+    return new Date(dateStr + '-03:00');
+  }
+  return new Date(dateStr);
+}
+
 function normalizeIntervalMinutes(interval: number | null | undefined): number {
   if (!interval || Number.isNaN(interval)) return 60;
   return Math.max(5, Math.floor(interval));
