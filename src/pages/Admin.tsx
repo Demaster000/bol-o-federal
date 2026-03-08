@@ -785,7 +785,7 @@ const Admin = () => {
                   ))}
                 </div>
                 <Button size="sm" variant="outline" className="w-full text-xs h-8" onClick={exportParticipants}>
-                  <Download className="mr-1 h-3 w-3" /> Exportar CSV
+                  <Download className="mr-1 h-3 w-3" /> Exportar PDF
                 </Button>
               </div>
             )}
