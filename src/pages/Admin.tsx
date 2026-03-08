@@ -19,7 +19,6 @@ import AdminClaims from '@/components/AdminClaims';
 import AdminWhatsApp from '@/components/AdminWhatsApp';
 import AdminMetrics from '@/components/AdminMetrics';
 import AdminUsers from '@/components/AdminUsers';
-import AdminWhatsApp from '@/components/AdminWhatsApp';
 import { Navigate } from 'react-router-dom';
 
 type PoolWithType = Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
