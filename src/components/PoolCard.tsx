@@ -37,7 +37,40 @@ const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
   const prizeAmount = pool.prize_amount ? Number(pool.prize_amount) : 0;
   const netPrize = prizeAmount * 0.9;
   const estimatedPerQuota = soldQuotas > 0 && netPrize > 0 ? netPrize / soldQuotas : 0;
-  const isClosed = pool.status !== 'open' || isSoldOut;
+
+  // Check if participation window has closed (5 hours before draw)
+  const isParticipationClosed = pool.draw_date
+    ? new Date().getTime() >= new Date(pool.draw_date).getTime() - 5 * 60 * 60 * 1000
+    : false;
+  const isClosed = pool.status !== 'open' || isSoldOut || isParticipationClosed;
+
+  // Format draw date in BRT (UTC-3)
+  const formatDrawDateBRT = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('pt-BR', { 
+      day: '2-digit', month: '2-digit', 
+      timeZone: 'America/Sao_Paulo' 
+    });
+  };
+
+  const formatDrawTimeBRT = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('pt-BR', { 
+      hour: '2-digit', minute: '2-digit', 
+      timeZone: 'America/Sao_Paulo' 
+    });
+  };
+
+  // Participation deadline: 5 hours before draw in BRT
+  const getParticipationDeadline = (dateStr: string) => {
+    const drawDate = new Date(dateStr);
+    const deadline = new Date(drawDate.getTime() - 5 * 60 * 60 * 1000);
+    return deadline.toLocaleString('pt-BR', { 
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+      timeZone: 'America/Sao_Paulo' 
+    });
+  };
 
   return (
     <motion.div
