@@ -93,17 +93,24 @@ Deno.serve(async (req) => {
             );
 
             const paidAt = new Date().toISOString();
-            await supabaseAdmin
+            // Use conditional update to prevent race condition with webhook
+            const { data: updated, error: updateErr } = await supabaseAdmin
               .from("pix_payments")
               .update({ status: "paid", paid_at: paidAt })
-              .eq("id", payment.id);
+              .eq("id", payment.id)
+              .eq("status", "pending")
+              .select("id")
+              .single();
 
-            await supabaseAdmin.from("pool_purchases").insert({
-              pool_id: payment.pool_id,
-              user_id: userId,
-              quantity: payment.quantity,
-              total_paid: payment.total_amount,
-            });
+            // Only create purchase if we were the one to update (prevents duplicates)
+            if (updated && !updateErr) {
+              await supabaseAdmin.from("pool_purchases").insert({
+                pool_id: payment.pool_id,
+                user_id: userId,
+                quantity: payment.quantity,
+                total_paid: payment.total_amount,
+              });
+            }
 
             return new Response(
               JSON.stringify({ status: "paid", paid_at: paidAt }),

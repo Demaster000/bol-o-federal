@@ -84,11 +84,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Update payment status
-    await supabase
+    // Update payment status - use conditional update to prevent race condition with polling
+    const { data: updated, error: updateErr } = await supabase
       .from("pix_payments")
       .update({ status: "paid", paid_at: new Date().toISOString() })
-      .eq("id", payment.id);
+      .eq("id", payment.id)
+      .eq("status", "pending")
+      .select("id")
+      .single();
+
+    // Only create purchase if we were the one to update (prevents duplicates)
+    if (!updated || updateErr) {
+      console.log(`Payment ${payment.id} already processed, skipping purchase creation`);
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Create purchase record
     const { error: purchaseError } = await supabase
