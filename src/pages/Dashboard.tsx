@@ -7,6 +7,7 @@ import { Tables } from '@/integrations/supabase/types';
 import { Ticket, Calendar, Trophy, Gift, Bell, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ClaimPrizeDialog from '@/components/ClaimPrizeDialog';
+import ReferralSection from '@/components/ReferralSection';
 
 type PurchaseWithPool = Tables<'pool_purchases'> & {
   pools: (Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null }) | null;
