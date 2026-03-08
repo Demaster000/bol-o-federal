@@ -385,15 +385,17 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="pools" className="space-y-4 sm:space-y-6">
-          <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
-            <TabsList className="bg-muted inline-flex w-auto min-w-full sm:min-w-0">
-              <TabsTrigger value="pools" className="text-xs sm:text-sm whitespace-nowrap">Bolões</TabsTrigger>
-              <TabsTrigger value="claims" className="text-xs sm:text-sm whitespace-nowrap"><DollarSign className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> Pagamentos</TabsTrigger>
-              <TabsTrigger value="lotteries" className="text-xs sm:text-sm whitespace-nowrap">Modalidades</TabsTrigger>
-              <TabsTrigger value="pix-settings" className="text-xs sm:text-sm whitespace-nowrap">PIX</TabsTrigger>
-              <TabsTrigger value="whatsapp" className="text-xs sm:text-sm whitespace-nowrap"><MessageSquare className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> WhatsApp</TabsTrigger>
-            </TabsList>
-          </div>
+          <TabsList className="bg-muted grid grid-cols-3 sm:grid-cols-5 h-auto gap-1 p-1">
+            <TabsTrigger value="pools" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">Bolões</TabsTrigger>
+            <TabsTrigger value="claims" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">
+              <DollarSign className="mr-1 h-3 w-3 hidden sm:inline" />Pagamentos
+            </TabsTrigger>
+            <TabsTrigger value="lotteries" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">Modalidades</TabsTrigger>
+            <TabsTrigger value="pix-settings" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">PIX</TabsTrigger>
+            <TabsTrigger value="whatsapp" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">
+              <MessageSquare className="mr-1 h-3 w-3 hidden sm:inline" />WhatsApp
+            </TabsTrigger>
+          </TabsList>
 
           <TabsContent value="pools">
             <div className="grid gap-4">
