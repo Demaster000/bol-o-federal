@@ -498,10 +498,10 @@ const Admin = () => {
 
       {/* Create Pool Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] flex flex-col">
+        <DialogContent className="bg-card border-border w-[95vw] max-w-lg max-h-[90vh] flex flex-col p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">Criar Novo Bolão</DialogTitle>
-            <DialogDescription className="text-muted-foreground">Preencha os dados para criar um novo bolão.</DialogDescription>
+            <DialogTitle className="font-display text-lg sm:text-xl">Criar Novo Bolão</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs sm:text-sm">Preencha os dados para criar um novo bolão.</DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-4">
             <div className="space-y-4 py-2">
