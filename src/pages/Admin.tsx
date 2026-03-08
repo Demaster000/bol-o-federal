@@ -595,6 +595,7 @@ const Admin = () => {
             <AdminUsers />
           </TabsContent>
 
+          <TabsContent value="claims">
             <AdminClaims />
           </TabsContent>
 
