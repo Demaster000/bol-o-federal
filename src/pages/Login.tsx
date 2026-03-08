@@ -72,7 +72,7 @@ const Login = () => {
     }
 
     setLoading(true);
-    const { error } = await signUp(email, password, fullName, phone);
+    const { error } = await signUp(email, password, fullName, phone, refCode || undefined);
     setLoading(false);
     
     if (error) {
