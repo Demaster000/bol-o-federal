@@ -49,7 +49,7 @@ const Admin = () => {
   const [form, setForm] = useState({
     lottery_type_id: '',
     title: '',
-    description: '',
+    description: DEFAULT_DESCRIPTION,
     price_per_quota: '',
     prize_amount: '',
     draw_date: '',
