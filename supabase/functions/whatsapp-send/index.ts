@@ -209,7 +209,6 @@ serve(async (req: Request) => {
         });
       }
     }
-    }
 
     const settings = await getSettings(supabaseAdmin);
     if (!settings) {
