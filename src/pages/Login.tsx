@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, LogIn, UserPlus, Gift } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
 const Login = () => {
