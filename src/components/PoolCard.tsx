@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Calendar, Trophy, TrendingUp, Edit2 } from 'lucide-react';
+import { Calendar, Trophy, TrendingUp } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
+import CountdownTimer from '@/components/CountdownTimer';
+import ShareButtons from '@/components/ShareButtons';
 
 interface PoolCardProps {
   pool: Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
@@ -104,6 +106,11 @@ const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
                 </p>
               </div>
             </div>
+
+            {/* Countdown Timer */}
+            {pool.draw_date && pool.status === 'open' && (
+              <CountdownTimer drawDate={pool.draw_date} />
+            )}
           </div>
 
           <div className="flex items-end justify-between sm:flex-col gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 sm:border-l border-border sm:pl-6 flex-shrink-0">
@@ -113,13 +120,16 @@ const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
                 R$ {pool.price_per_quota.toFixed(2)}
               </p>
             </div>
-            <Button
-              onClick={() => onBuy(pool)}
-              disabled={isClosed}
-              className={`w-full sm:w-auto text-xs sm:text-sm ${isClosed ? '' : `bg-gradient-to-r ${gradient} hover:opacity-90 text-primary-foreground`}`}
-            >
-              {isSoldOut ? 'ESGOTADO' : (isClosed ? (pool.status === 'drawn' ? 'Encerrado' : 'Fechado') : 'Comprar Cota')}
-            </Button>
+            <div className="flex items-center gap-1">
+              <ShareButtons poolId={pool.id} title={pool.title} price={pool.price_per_quota} prize={pool.prize_amount} compact />
+              <Button
+                onClick={() => onBuy(pool)}
+                disabled={isClosed}
+                className={`text-xs sm:text-sm ${isClosed ? '' : `bg-gradient-to-r ${gradient} hover:opacity-90 text-primary-foreground`}`}
+              >
+                {isSoldOut ? 'ESGOTADO' : (isClosed ? (pool.status === 'drawn' ? 'Encerrado' : 'Fechado') : 'Comprar Cota')}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
