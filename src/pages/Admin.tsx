@@ -608,10 +608,10 @@ const Admin = () => {
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="bg-card border-border max-w-lg">
+        <DialogContent className="bg-card border-border w-[95vw] max-w-lg max-h-[85vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">Detalhes do Bolão</DialogTitle>
-            <DialogDescription className="text-muted-foreground">Informações e participantes do bolão.</DialogDescription>
+            <DialogTitle className="font-display text-lg sm:text-xl">Detalhes do Bolão</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs sm:text-sm">Informações e participantes do bolão.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="rounded-lg bg-muted p-4 space-y-1">
