@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
 import { Tables } from '@/integrations/supabase/types';
-import { Ticket, Calendar, Trophy, Gift, Bell, TrendingUp } from 'lucide-react';
+import { Ticket, Calendar, Trophy, Gift, Bell, TrendingUp, AlertCircle, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ClaimPrizeDialog from '@/components/ClaimPrizeDialog';
 
@@ -15,7 +15,7 @@ type PurchaseWithPool = Tables<'pool_purchases'> & {
 const Dashboard = () => {
   const { user } = useAuth();
   const [purchases, setPurchases] = useState<PurchaseWithPool[]>([]);
-  const [claimedPurchases, setClaimedPurchases] = useState<Map<string, { status: string; reason?: string }>>(new Map());
+  const [claimedPurchases, setClaimedPurchases] = useState<Map<string, { status: string; reason?: string; claimId?: string }>>(new Map());
   const [notifications, setNotifications] = useState<Tables<'notifications'>[]>([]);
   const [claimDialog, setClaimDialog] = useState<{
     open: boolean;
@@ -37,7 +37,7 @@ const Dashboard = () => {
         .order('created_at', { ascending: false }),
       supabase
         .from('prize_claims')
-        .select('purchase_id, status, rejection_reason')
+        .select('id, purchase_id, status, rejection_reason')
         .eq('user_id', user.id),
       supabase
         .from('notifications')
@@ -47,9 +47,9 @@ const Dashboard = () => {
     ]);
     if (purchasesRes.data) setPurchases(purchasesRes.data as PurchaseWithPool[]);
     if (claimsRes.data) {
-      const map = new Map<string, { status: string; reason?: string }>();
+      const map = new Map<string, { status: string; reason?: string; claimId?: string }>();
       claimsRes.data.forEach((c: any) => {
-        if (c.purchase_id) map.set(c.purchase_id, { status: c.status, reason: c.rejection_reason });
+        if (c.purchase_id) map.set(c.purchase_id, { status: c.status, reason: c.rejection_reason, claimId: c.id });
       });
       setClaimedPurchases(map);
     }
@@ -70,7 +70,7 @@ const Dashboard = () => {
     await new Promise(resolve => setTimeout(resolve, 500));
     const { data } = await supabase
       .from('prize_claims')
-      .select('purchase_id, status, rejection_reason')
+      .select('id, purchase_id, status, rejection_reason')
       .eq('user_id', user.id)
       .eq('purchase_id', purchaseId)
       .single();
@@ -78,11 +78,47 @@ const Dashboard = () => {
     if (data) {
       setClaimedPurchases(prev => new Map(prev).set(purchaseId, { 
         status: (data as any).status, 
-        reason: (data as any).rejection_reason 
+        reason: (data as any).rejection_reason,
+        claimId: (data as any).id
       }));
     } else {
       // Se não encontrar, recarregar todos os dados
       fetchData();
+    }
+  };
+
+  const handleRetryAfterRejection = async (claimId: string, purchaseId: string) => {
+    // Deletar a solicitação rejeitada para permitir novo envio
+    const { error } = await supabase
+      .from('prize_claims')
+      .delete()
+      .eq('id', claimId);
+
+    if (error) {
+      console.error('Erro ao limpar solicitação rejeitada:', error);
+    } else {
+      // Remover do mapa de solicitações
+      setClaimedPurchases(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(purchaseId);
+        return newMap;
+      });
+
+      // Abrir o diálogo para nova solicitação
+      const purchase = purchases.find(p => p.id === purchaseId);
+      if (purchase) {
+        const lotteryName = purchase.pools?.lottery_types?.name ?? '';
+        const prizeForUser = calcPrizePerQuota(purchase.pools, purchase.quantity);
+        setClaimDialog({
+          open: true,
+          purchaseId: purchase.id,
+          poolId: purchase.pool_id,
+          poolTitle: purchase.pools?.title ?? '',
+          lotteryName,
+          concurso: purchase.pools?.title ?? '',
+          amount: prizeForUser,
+        });
+      }
     }
   };
 
@@ -195,6 +231,8 @@ const Dashboard = () => {
               const claimData = claimedPurchases.get(p.id);
               const claimStatus = claimData?.status;
               const rejectionReason = claimData?.reason;
+              const claimId = claimData?.claimId;
+              const isRejected = claimStatus === 'rejected';
 
               return (
                 <motion.div
@@ -270,7 +308,7 @@ const Dashboard = () => {
                       <p className="font-display font-bold text-foreground">R$ {p.total_paid.toFixed(2)}</p>
                     </div>
 
-                    {isDrawn && prizeForUser > 0 && (
+                    {isDrawn && (
                       <div className="rounded-lg bg-accent/20 border border-accent/30 p-3">
                         <div className="flex items-center gap-1.5 mb-1">
                           <Gift className="h-4 w-4 text-primary" />
@@ -280,7 +318,7 @@ const Dashboard = () => {
                           R$ {prizeForUser.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </p>
                         {alreadyClaimed ? (
-                          <div className="space-y-1 mt-1">
+                          <div className="space-y-2 mt-2">
                             <p className="text-xs text-primary">✓ Solicitação de recebimento enviada</p>
                             <p className="text-xs text-muted-foreground">
                               Status: <span className={`font-semibold ${
@@ -295,11 +333,23 @@ const Dashboard = () => {
                                  'Pendente'}
                               </span>
                             </p>
-                            {claimStatus === 'rejected' && rejectionReason && (
-                              <div className="mt-1 rounded bg-red-500/10 border border-red-500/20 p-2">
-                                <p className="text-[10px] text-red-400 leading-tight">
-                                  <span className="font-bold">Motivo da recusa:</span> {rejectionReason}
-                                </p>
+                            
+                            {isRejected && rejectionReason && (
+                              <div className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 p-2 space-y-2">
+                                <div className="flex items-start gap-2">
+                                  <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] text-red-400 font-semibold mb-1">Motivo da Recusa:</p>
+                                    <p className="text-[10px] text-red-300 leading-relaxed break-words">{rejectionReason}</p>
+                                  </div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  className="w-full mt-2 bg-gradient-green hover:opacity-90 text-primary-foreground text-xs h-7"
+                                  onClick={() => claimId && handleRetryAfterRejection(claimId, p.id)}
+                                >
+                                  <RotateCw className="mr-1 h-3 w-3" /> Tentar Novamente
+                                </Button>
                               </div>
                             )}
                           </div>
