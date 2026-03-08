@@ -343,14 +343,16 @@ serve(async (req: Request) => {
       }
 
       case "custom": {
-        const { message } = data;
-        if (!message) {
+        const { message } = data || {};
+        if (!message || typeof message !== "string" || message.trim().length === 0) {
           return new Response(JSON.stringify({ error: "Mensagem não informada" }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        result = await sendWhatsAppMessage(settings, message);
+        // Limit message length to prevent abuse
+        const sanitizedMessage = message.trim().slice(0, 4096);
+        result = await sendWhatsAppMessage(settings, sanitizedMessage);
         break;
       }
 
