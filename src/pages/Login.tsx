@@ -121,6 +121,19 @@ const Login = () => {
           </div>
         )}
 
+        {/* Referral alert */}
+        {refCode && mode === 'register' && (
+          <div className="rounded-lg border border-primary/50 bg-primary/10 p-4 flex gap-3">
+            <Gift className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">Você foi indicado! 🎉</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Cadastre-se e ao comprar cotas, quem te indicou ganha 1 cota grátis do mesmo sorteio!
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Mode Toggle */}
         <div className="flex gap-2 rounded-lg border border-border bg-muted/50 p-1">
           <button
