@@ -587,7 +587,14 @@ const Admin = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="claims">
+          <TabsContent value="metrics">
+            <AdminMetrics />
+          </TabsContent>
+
+          <TabsContent value="users">
+            <AdminUsers />
+          </TabsContent>
+
             <AdminClaims />
           </TabsContent>
 
