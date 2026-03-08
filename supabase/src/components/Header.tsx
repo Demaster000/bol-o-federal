@@ -148,7 +148,7 @@ const Header = () => {
             <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
             <div className="flex flex-col h-full">
               <div className="flex items-center gap-2 p-4 border-b border-border">
-                <img src={logo} alt="Sorte Compartilhada" className="h-8 w-auto" />
+                <img src={logo} alt="Sorte Compartilhada" className="h-12 w-auto" />
               </div>
               <nav className="flex-1 flex flex-col gap-1 p-3">
                 <NavItems mobile />
