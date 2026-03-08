@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Calendar, Trophy, TrendingUp } from 'lucide-react';
+import { Calendar, Trophy, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import CountdownTimer from '@/components/CountdownTimer';
 import ShareButtons from '@/components/ShareButtons';
@@ -25,6 +26,7 @@ const LOTTERY_COLORS: Record<string, string> = {
 };
 
 const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
+  const [showDescription, setShowDescription] = useState(false);
   const lotteryName = pool.lottery_types?.name ?? '';
   const gradient = LOTTERY_COLORS[lotteryName] || 'from-primary to-primary/80';
   const soldQuotas = pool.sold_quotas ?? 0;
@@ -43,8 +45,9 @@ const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
       animate={{ opacity: 1, y: 0 }}
       className="group relative overflow-hidden rounded-xl border border-border bg-card transition-all hover:shadow-glow w-full"
     >
-      <div className="flex flex-col sm:flex-row">
-        <div className={`bg-gradient-to-r ${gradient} px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0 w-full sm:w-48 flex flex-col justify-center items-start sm:items-center gap-1`}>
+      {/* Header com nome da loteria */}
+      <div className={`bg-gradient-to-r ${gradient} px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between`}>
+        <div className="flex items-center gap-2">
           <span className="font-display text-xs sm:text-sm font-bold uppercase tracking-wider text-primary-foreground/90">
             {lotteryName}
           </span>
@@ -54,83 +57,102 @@ const PoolCard = ({ pool, onBuy, onEdit }: PoolCardProps) => {
             </span>
           )}
         </div>
+        <ShareButtons poolId={pool.id} title={pool.title} price={pool.price_per_quota} prize={pool.prize_amount} compact />
+      </div>
 
-        <div className="flex-1 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
-          <div className="flex-1 space-y-2 sm:space-y-3">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-display text-base sm:text-lg font-bold text-foreground">{pool.title}</h3>
-                {isUnlimited && (
-                  <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded border border-primary/20">
-                    MAIS CHANCES DE GANHARMOS
-                  </span>
-                )}
-              </div>
-              {pool.description && (
-                <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap break-words max-h-24 overflow-y-auto">{pool.description}</p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
-              {prizeAmount > 0 && (
-                <div className="rounded-lg bg-muted/50 p-2 sm:p-3">
-                  <div className="flex items-center gap-1 text-muted-foreground mb-1">
-                    <Trophy className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                    <span>Prêmio</span>
-                  </div>
-                  <p className="font-display font-bold text-foreground text-xs sm:text-sm">
-                    R$ {prizeAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-              )}
-              <div className="rounded-lg bg-muted/50 p-2 sm:p-3">
-                <div className="flex items-center gap-1 text-muted-foreground mb-1">
-                  <TrendingUp className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                  <span>Est. por cota</span>
-                </div>
-                <p className="font-display font-bold text-primary text-xs sm:text-sm">
-                  {estimatedPerQuota > 0
-                    ? `R$ ${estimatedPerQuota.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-                    : '—'}
-                </p>
-              </div>
-              <div className="rounded-lg bg-muted/50 p-2 sm:p-3">
-                <div className="flex items-center gap-1 text-muted-foreground mb-1">
-                  <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                  <span>Sorteio</span>
-                </div>
-                <p className="font-display font-bold text-foreground text-xs sm:text-sm">
-                  {pool.draw_date
-                    ? new Date(pool.draw_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-                    : 'A definir'}
-                </p>
-              </div>
-            </div>
-
-            {/* Countdown Timer */}
-            {pool.draw_date && pool.status === 'open' && (
-              <CountdownTimer drawDate={pool.draw_date} />
+      {/* Conteúdo */}
+      <div className="p-4 sm:p-5 space-y-3">
+        {/* Título e badge */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-display text-base sm:text-lg font-bold text-foreground truncate">{pool.title}</h3>
+            {isUnlimited && (
+              <span className="inline-block mt-1 bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded border border-primary/20">
+                MAIS CHANCES DE GANHARMOS
+              </span>
             )}
           </div>
+        </div>
 
-          <div className="flex items-end justify-between sm:flex-col gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 sm:border-l border-border sm:pl-6 flex-shrink-0">
-            <div>
-              <span className="text-xs text-muted-foreground">Valor por cota</span>
-              <p className="font-display font-bold text-lg sm:text-xl text-gradient-gold">
-                R$ {pool.price_per_quota.toFixed(2)}
+        {/* Descrição colapsável */}
+        {pool.description && (
+          <div>
+            <button
+              onClick={() => setShowDescription(!showDescription)}
+              className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+            >
+              {showDescription ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              {showDescription ? 'Ocultar detalhes' : 'Ver como participar'}
+            </button>
+            {showDescription && (
+              <p className="mt-2 text-xs text-muted-foreground whitespace-pre-wrap break-words rounded-lg bg-muted/30 p-3 border border-border">
+                {pool.description}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Info grid responsivo */}
+        <div className="grid grid-cols-3 gap-2 text-xs">
+          {prizeAmount > 0 && (
+            <div className="rounded-lg bg-muted/50 p-2 sm:p-3 min-w-0">
+              <div className="flex items-center gap-1 text-muted-foreground mb-1">
+                <Trophy className="h-3 w-3 shrink-0" />
+                <span className="truncate">Prêmio</span>
+              </div>
+              <p className="font-display font-bold text-foreground text-xs sm:text-sm truncate">
+                R$ {prizeAmount >= 1000000
+                  ? `${(prizeAmount / 1000000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} mi`
+                  : prizeAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="flex items-center gap-1">
-              <ShareButtons poolId={pool.id} title={pool.title} price={pool.price_per_quota} prize={pool.prize_amount} compact />
-              <Button
-                onClick={() => onBuy(pool)}
-                disabled={isClosed}
-                className={`text-xs sm:text-sm ${isClosed ? '' : `bg-gradient-to-r ${gradient} hover:opacity-90 text-primary-foreground`}`}
-              >
-                {isSoldOut ? 'ESGOTADO' : (isClosed ? (pool.status === 'drawn' ? 'Encerrado' : 'Fechado') : 'Comprar Cota')}
-              </Button>
+          )}
+          <div className="rounded-lg bg-muted/50 p-2 sm:p-3 min-w-0">
+            <div className="flex items-center gap-1 text-muted-foreground mb-1">
+              <TrendingUp className="h-3 w-3 shrink-0" />
+              <span className="truncate">Est./cota</span>
             </div>
+            <p className="font-display font-bold text-primary text-xs sm:text-sm truncate">
+              {estimatedPerQuota > 0
+                ? `R$ ${estimatedPerQuota >= 1000000
+                    ? `${(estimatedPerQuota / 1000000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} mi`
+                    : estimatedPerQuota.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                : '—'}
+            </p>
           </div>
+          <div className="rounded-lg bg-muted/50 p-2 sm:p-3 min-w-0">
+            <div className="flex items-center gap-1 text-muted-foreground mb-1">
+              <Calendar className="h-3 w-3 shrink-0" />
+              <span className="truncate">Sorteio</span>
+            </div>
+            <p className="font-display font-bold text-foreground text-xs sm:text-sm">
+              {pool.draw_date
+                ? new Date(pool.draw_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                : 'A definir'}
+            </p>
+          </div>
+        </div>
+
+        {/* Countdown Timer */}
+        {pool.draw_date && pool.status === 'open' && (
+          <CountdownTimer drawDate={pool.draw_date} compact />
+        )}
+
+        {/* Footer: preço + botão */}
+        <div className="flex items-center justify-between pt-3 border-t border-border">
+          <div>
+            <span className="text-[10px] text-muted-foreground">Valor por cota</span>
+            <p className="font-display font-bold text-lg text-gradient-gold">
+              R$ {pool.price_per_quota.toFixed(2)}
+            </p>
+          </div>
+          <Button
+            onClick={() => onBuy(pool)}
+            disabled={isClosed}
+            className={`text-xs sm:text-sm ${isClosed ? '' : `bg-gradient-to-r ${gradient} hover:opacity-90 text-primary-foreground`}`}
+          >
+            {isSoldOut ? 'ESGOTADO' : (isClosed ? (pool.status === 'drawn' ? 'Encerrado' : 'Fechado') : 'Comprar Cota')}
+          </Button>
         </div>
       </div>
     </motion.div>
