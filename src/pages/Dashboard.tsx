@@ -7,6 +7,7 @@ import { Tables } from '@/integrations/supabase/types';
 import { Ticket, Calendar, Trophy, Gift, Bell, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ClaimPrizeDialog from '@/components/ClaimPrizeDialog';
+import ReferralSection from '@/components/ReferralSection';
 
 type PurchaseWithPool = Tables<'pool_purchases'> & {
   pools: (Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null }) | null;
@@ -49,7 +50,13 @@ const Dashboard = () => {
     if (claimsRes.data) {
       const map = new Map<string, { status: string; reason?: string }>();
       claimsRes.data.forEach((c: any) => {
-        if (c.purchase_id) map.set(c.purchase_id, { status: c.status, reason: c.rejection_reason });
+        if (c.purchase_id) {
+          const existing = map.get(c.purchase_id);
+          // Keep the most recent non-rejected claim, or the rejected one if no other exists
+          if (!existing || existing.status === 'rejected') {
+            map.set(c.purchase_id, { status: c.status, reason: c.rejection_reason });
+          }
+        }
       });
       setClaimedPurchases(map);
     }
@@ -160,7 +167,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto px-4 py-10">
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-10">
         {notifications.length > 0 && (
           <div className="mb-6 space-y-2">
             {notifications.filter(n => !n.read).map(n => (
@@ -177,7 +184,10 @@ const Dashboard = () => {
           </div>
         )}
 
-        <h1 className="font-display text-3xl font-bold text-foreground mb-8">
+        {/* Referral Section */}
+        <ReferralSection />
+
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-6 sm:mb-8 mt-6">
           Meus <span className="text-gradient-gold">Bolões</span>
         </h1>
 
@@ -279,48 +289,52 @@ const Dashboard = () => {
                         <p className="font-display font-bold text-lg text-gradient-gold">
                           R$ {prizeForUser.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </p>
-                        {alreadyClaimed ? (
+                        {alreadyClaimed && claimStatus !== 'rejected' ? (
                           <div className="space-y-1 mt-1">
                             <p className="text-xs text-primary">✓ Solicitação de recebimento enviada</p>
                             <p className="text-xs text-muted-foreground">
                               Status: <span className={`font-semibold ${
                                 claimStatus === 'paid' ? 'text-green-400' :
                                 claimStatus === 'in_progress' ? 'text-blue-400' :
-                                claimStatus === 'rejected' ? 'text-red-400' :
                                 'text-yellow-400'
                               }`}>
                                 {claimStatus === 'paid' ? 'Pago' :
                                  claimStatus === 'in_progress' ? 'Em processamento' :
-                                 claimStatus === 'rejected' ? 'Recusado' :
                                  'Pendente'}
                               </span>
                             </p>
-                            {claimStatus === 'rejected' && rejectionReason && (
-                              <div className="mt-1 rounded bg-red-500/10 border border-red-500/20 p-2">
-                                <p className="text-[10px] text-red-400 leading-tight">
-                                  <span className="font-bold">Motivo da recusa:</span> {rejectionReason}
-                                </p>
-                              </div>
-                            )}
                           </div>
                         ) : (
-                          <Button
-                            size="sm"
-                            className="mt-2 bg-gradient-green hover:opacity-90 text-primary-foreground w-full"
-                            onClick={() =>
-                              setClaimDialog({
-                                open: true,
-                                purchaseId: p.id,
-                                poolId: p.pool_id,
-                                poolTitle: p.pools?.title ?? '',
-                                lotteryName,
-                                concurso: p.pools?.title ?? '',
-                                amount: prizeForUser,
-                              })
-                            }
-                          >
-                            <Gift className="mr-1.5 h-3.5 w-3.5" /> Receber Prêmio
-                          </Button>
+                          <div className="space-y-2 mt-1">
+                            {claimStatus === 'rejected' && (
+                              <div className="rounded bg-red-500/10 border border-red-500/20 p-2">
+                                <p className="text-xs text-red-400 font-semibold">Solicitação recusada</p>
+                                {rejectionReason && (
+                                  <p className="text-[10px] text-red-400 leading-tight mt-1">
+                                    <span className="font-bold">Motivo:</span> {rejectionReason}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            <Button
+                              size="sm"
+                              className="bg-gradient-green hover:opacity-90 text-primary-foreground w-full"
+                              onClick={() =>
+                                setClaimDialog({
+                                  open: true,
+                                  purchaseId: p.id,
+                                  poolId: p.pool_id,
+                                  poolTitle: p.pools?.title ?? '',
+                                  lotteryName,
+                                  concurso: p.pools?.title ?? '',
+                                  amount: prizeForUser,
+                                })
+                              }
+                            >
+                              <Gift className="mr-1.5 h-3.5 w-3.5" />
+                              {claimStatus === 'rejected' ? 'Solicitar Novamente' : 'Receber Prêmio'}
+                            </Button>
+                          </div>
                         )}
                       </div>
                     )}

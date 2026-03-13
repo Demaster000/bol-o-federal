@@ -115,6 +115,15 @@ const ClaimPrizeDialog = ({ open, onClose, onSuccess, purchaseId, poolId, poolTi
     }
 
     setLoading(true);
+    
+    // Delete any previous rejected claim for this purchase
+    await supabase
+      .from('prize_claims')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('purchase_id', purchaseId)
+      .eq('status', 'rejected');
+
     const signedContract = await generateSignedContract();
     const { error } = await supabase.from('prize_claims').insert({
       user_id: user.id,
@@ -180,7 +189,7 @@ const ClaimPrizeDialog = ({ open, onClose, onSuccess, purchaseId, poolId, poolTi
             <div className="text-xs text-muted-foreground space-y-2 leading-relaxed">
               <p>Ao informar meu CPF e clicar em "ACEITAR", declaro expressamente, para todos os fins de direito, que:</p>
 
-              <p><strong className="text-foreground">Participação Voluntária</strong> — Participei de forma livre e voluntária do bolão online promovido por BolãoVIP, tendo previamente aceitado suas regras, condições de divisão e critérios de pagamento.</p>
+              <p><strong className="text-foreground">Participação Voluntária</strong> — Participei de forma livre e voluntária do bolão online promovido por Sorte Compartilhada, tendo previamente aceitado suas regras, condições de divisão e critérios de pagamento.</p>
 
               <p><strong className="text-foreground">Recebimento Integral</strong> — Recebi integralmente o valor de <strong className="text-foreground">R$ {amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> referente à minha cota-parte do prêmio do <strong className="text-foreground">{concurso}</strong>, modalidade <strong className="text-foreground">{lotteryName}</strong>, nada restando a receber.</p>
 

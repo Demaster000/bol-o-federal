@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Clock } from 'lucide-react';
+import { Clock, AlertTriangle } from 'lucide-react';
 
 interface ClaimPrizeDialogProps {
   open: boolean;
@@ -27,8 +27,31 @@ const ClaimPrizeDialog = ({ open, onClose, onSuccess, purchaseId, poolId, poolTi
   const [pixKey, setPixKey] = useState('');
   const [accepted, setAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Auto-fill name and CPF from profile
+  useEffect(() => {
+    if (open && user) {
+      supabase
+        .from('profiles')
+        .select('full_name, cpf')
+        .eq('user_id', user.id)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            if (data.full_name) setFullName(data.full_name);
+            if (data.cpf) {
+              // Format CPF for display
+              const digits = data.cpf.replace(/\D/g, '');
+              setCpf(formatCpf(digits));
+            }
+          }
+          setProfileLoaded(true);
+        });
+    }
+  }, [open, user]);
 
   const formatCpf = (value: string) => {
     const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -115,6 +138,15 @@ const ClaimPrizeDialog = ({ open, onClose, onSuccess, purchaseId, poolId, poolTi
     }
 
     setLoading(true);
+    
+    // Delete any previous rejected claim for this purchase
+    await supabase
+      .from('prize_claims')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('purchase_id', purchaseId)
+      .eq('status', 'rejected');
+
     const signedContract = await generateSignedContract();
     const { error } = await supabase.from('prize_claims').insert({
       user_id: user.id,
@@ -205,21 +237,24 @@ const ClaimPrizeDialog = ({ open, onClose, onSuccess, purchaseId, poolId, poolTi
             <div className="space-y-1.5">
               <Label className="text-sm">Nome Completo *</Label>
               <Input
-                className="bg-muted"
+                className="bg-muted disabled:opacity-70"
                 placeholder="Seu nome completo"
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                readOnly
+                disabled
               />
+              <p className="text-xs text-muted-foreground">Preenchido automaticamente do seu cadastro.</p>
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">CPF *</Label>
               <Input
-                className="bg-muted"
+                className="bg-muted disabled:opacity-70"
                 placeholder="000.000.000-00"
                 value={cpf}
-                onChange={(e) => setCpf(formatCpf(e.target.value))}
-                maxLength={14}
+                readOnly
+                disabled
               />
+              <p className="text-xs text-muted-foreground">Preenchido automaticamente do seu cadastro.</p>
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">Chave PIX *</Label>
@@ -229,6 +264,12 @@ const ClaimPrizeDialog = ({ open, onClose, onSuccess, purchaseId, poolId, poolTi
                 value={pixKey}
                 onChange={(e) => setPixKey(e.target.value)}
               />
+              <div className="flex items-start gap-1.5 mt-1">
+                <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-600 font-medium">
+                  A chave PIX deve estar no nome do titular ({fullName || 'seu nome'}).
+                </p>
+              </div>
             </div>
           </div>
 

@@ -11,15 +11,28 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trophy, Users, Ticket, Eye, DollarSign, Trash2, MessageSquare } from 'lucide-react';
+import { Plus, Pencil, Trophy, Users, Ticket, Eye, DollarSign, Trash2, MessageSquare, Download, Copy, BarChart3 } from 'lucide-react';
 import AdminClaims from '@/components/AdminClaims';
 import AdminWhatsApp from '@/components/AdminWhatsApp';
+import AdminMetrics from '@/components/AdminMetrics';
+import AdminUsers from '@/components/AdminUsers';
 import { Navigate } from 'react-router-dom';
 
 type PoolWithType = Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null };
-type PurchaseWithProfile = Tables<'pool_purchases'> & { profile_name?: string };
+type PurchaseWithProfile = Tables<'pool_purchases'> & { profile_name?: string; profile_phone?: string };
+
+const DEFAULT_DESCRIPTION = `📋 COMO PARTICIPAR:
+
+1️⃣ Clique em "Comprar Cota"
+2️⃣ Escolha a quantidade de cotas desejada
+3️⃣ Realize o pagamento via PIX (QR Code)
+4️⃣ Aguarde a confirmação automática do pagamento
+5️⃣ Pronto! Suas cotas estão garantidas! 🎉
+
+🍀 Boa sorte a todos!`;
 
 const Admin = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
@@ -39,7 +52,7 @@ const Admin = () => {
   const [form, setForm] = useState({
     lottery_type_id: '',
     title: '',
-    description: '',
+    description: DEFAULT_DESCRIPTION,
     price_per_quota: '',
     prize_amount: '',
     draw_date: '',
@@ -49,6 +62,126 @@ const Admin = () => {
   const [resultText, setResultText] = useState('');
   const [prizeAmount, setPrizeAmount] = useState('');
   const [formLoading, setFormLoading] = useState(false);
+  const [exportFields, setExportFields] = useState({ name: true, phone: true, quotas: true, paid: true, date: false });
+
+  const exportParticipants = async () => {
+    if (poolPurchases.length === 0) return;
+    try {
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 15;
+      const maxWidth = pageWidth - 2 * margin;
+      let y = margin;
+
+      // Title
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Relatório de Participantes', margin, y);
+      y += 8;
+
+      // Pool info
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Bolão: ${selectedPool?.title ?? '—'}`, margin, y);
+      y += 5;
+      doc.text(`Data de exportação: ${new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, margin, y);
+      y += 5;
+      doc.text(`Total de participantes: ${poolPurchases.length}`, margin, y);
+      y += 5;
+
+      const totalQuotas = poolPurchases.reduce((s, p) => s + p.quantity, 0);
+      const totalPaid = poolPurchases.reduce((s, p) => s + p.total_paid, 0);
+      doc.text(`Total de cotas: ${totalQuotas}  |  Valor total: R$ ${totalPaid.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, margin, y);
+      y += 10;
+
+      // Build headers & column configs
+      const headers: string[] = [];
+      const colKeys: string[] = [];
+      if (exportFields.name) { headers.push('Nome'); colKeys.push('name'); }
+      if (exportFields.phone) { headers.push('WhatsApp'); colKeys.push('phone'); }
+      if (exportFields.quotas) { headers.push('Cotas'); colKeys.push('quotas'); }
+      if (exportFields.paid) { headers.push('Valor Pago'); colKeys.push('paid'); }
+      if (exportFields.date) { headers.push('Data'); colKeys.push('date'); }
+
+      if (headers.length === 0) return;
+
+      const colCount = headers.length;
+      const colWidth = maxWidth / colCount;
+      const rowHeight = 7;
+
+      // Draw table header
+      doc.setFillColor(30, 30, 40);
+      doc.rect(margin, y, maxWidth, rowHeight, 'F');
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      headers.forEach((h, i) => {
+        doc.text(h, margin + i * colWidth + 2, y + 5);
+      });
+      doc.setTextColor(0, 0, 0);
+      y += rowHeight;
+
+      // Draw rows
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      poolPurchases.forEach((p, idx) => {
+        if (y + rowHeight > pageHeight - margin) {
+          doc.addPage();
+          y = margin;
+          // Re-draw header on new page
+          doc.setFillColor(30, 30, 40);
+          doc.rect(margin, y, maxWidth, rowHeight, 'F');
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(255, 255, 255);
+          headers.forEach((h, i) => {
+            doc.text(h, margin + i * colWidth + 2, y + 5);
+          });
+          doc.setTextColor(0, 0, 0);
+          doc.setFont('helvetica', 'normal');
+          y += rowHeight;
+        }
+
+        // Alternate row bg
+        if (idx % 2 === 0) {
+          doc.setFillColor(245, 245, 245);
+          doc.rect(margin, y, maxWidth, rowHeight, 'F');
+        }
+
+        // Draw cell borders
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(margin, y, maxWidth, rowHeight, 'S');
+
+        const values: Record<string, string> = {
+          name: p.profile_name ?? 'Usuário',
+          phone: p.profile_phone ?? '—',
+          quotas: String(p.quantity),
+          paid: `R$ ${p.total_paid.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+          date: new Date(p.created_at!).toLocaleDateString('pt-BR'),
+        };
+
+        colKeys.forEach((key, i) => {
+          const text = values[key] ?? '';
+          const truncated = text.length > 28 ? text.substring(0, 26) + '...' : text;
+          doc.text(truncated, margin + i * colWidth + 2, y + 5);
+        });
+
+        y += rowHeight;
+      });
+
+      // Footer
+      y += 5;
+      if (y > pageHeight - 15) { doc.addPage(); y = margin; }
+      doc.setFontSize(8);
+      doc.setTextColor(120, 120, 120);
+      doc.text('Documento gerado automaticamente pelo sistema Sorte Compartilhada.', margin, y);
+
+      doc.save(`participantes_${selectedPool?.title?.replace(/\s+/g, '_') ?? 'bolao'}.pdf`);
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+    }
+  };
 
   const fetchData = async () => {
     const [typesRes, poolsRes] = await Promise.all([
@@ -89,13 +222,15 @@ const Admin = () => {
     }
 
     setFormLoading(true);
+    // Append BRT timezone offset (-03:00) so DB stores correct UTC
+    const drawDateUTC = form.draw_date ? `${form.draw_date}:00-03:00` : null;
     const { data: newPool, error } = await supabase.from('pools').insert({
       lottery_type_id: form.lottery_type_id,
       title: form.title,
       description: form.description || null,
       price_per_quota: priceVal,
       prize_amount: prizeVal,
-      draw_date: form.draw_date || null,
+      draw_date: drawDateUTC,
       unlimited_quotas: form.unlimited_quotas,
       total_quotas: form.unlimited_quotas ? 999999 : totalQuotasVal,
     }).select().single();
@@ -130,13 +265,13 @@ const Admin = () => {
         }
       }
       setCreateOpen(false);
-      setForm({ lottery_type_id: '', title: '', description: '', price_per_quota: '', prize_amount: '', draw_date: '', unlimited_quotas: false, total_quotas: '100' });
+      setForm({ lottery_type_id: '', title: '', description: DEFAULT_DESCRIPTION, price_per_quota: '', prize_amount: '', draw_date: '', unlimited_quotas: false, total_quotas: '100' });
       fetchData();
     }
   };
 
   const resetForm = () => {
-    setForm({ lottery_type_id: '', title: '', description: '', price_per_quota: '', prize_amount: '', draw_date: '', unlimited_quotas: false, total_quotas: '100' });
+    setForm({ lottery_type_id: '', title: '', description: DEFAULT_DESCRIPTION, price_per_quota: '', prize_amount: '', draw_date: '', unlimited_quotas: false, total_quotas: '100' });
     setIsEditing(false);
   };
 
@@ -163,12 +298,14 @@ const Admin = () => {
     }
 
     setFormLoading(true);
+    // Append BRT timezone offset (-03:00) so DB stores correct UTC
+    const drawDateUTC = form.draw_date ? `${form.draw_date}:00-03:00` : null;
     const { error } = await supabase.from('pools').update({
       title: form.title,
       description: form.description || null,
       price_per_quota: priceVal,
       prize_amount: prizeVal,
-      draw_date: form.draw_date || null,
+      draw_date: drawDateUTC,
       unlimited_quotas: form.unlimited_quotas,
       total_quotas: form.unlimited_quotas ? 999999 : totalQuotasVal,
     }).eq('id', selectedPool.id);
@@ -187,13 +324,22 @@ const Admin = () => {
 
   const handleOpenEditDialog = (pool: PoolWithType) => {
     setSelectedPool(pool);
+    // Convert stored UTC draw_date to BRT for datetime-local input
+    let drawDateBRT = '';
+    if (pool.draw_date) {
+      const d = new Date(pool.draw_date);
+      const brt = new Date(d.getTime() + 0); // already UTC
+      // Format as local BRT: YYYY-MM-DDTHH:MM
+      const formatted = brt.toLocaleString('sv-SE', { timeZone: 'America/Sao_Paulo' }).replace(' ', 'T').slice(0, 16);
+      drawDateBRT = formatted;
+    }
     setForm({
       lottery_type_id: pool.lottery_type_id,
       title: pool.title,
       description: pool.description || '',
       price_per_quota: String(pool.price_per_quota),
       prize_amount: String(pool.prize_amount || ''),
-      draw_date: pool.draw_date || '',
+      draw_date: drawDateBRT,
       unlimited_quotas: pool.unlimited_quotas || false,
       total_quotas: String(pool.total_quotas || '100'),
     });
@@ -321,6 +467,27 @@ const Admin = () => {
     }
   };
 
+  const handleDuplicatePool = async (pool: PoolWithType) => {
+    setFormLoading(true);
+    const { error } = await supabase.from('pools').insert({
+      lottery_type_id: pool.lottery_type_id,
+      title: `${pool.title} (Cópia)`,
+      description: pool.description,
+      price_per_quota: pool.price_per_quota,
+      prize_amount: pool.prize_amount,
+      draw_date: null,
+      unlimited_quotas: pool.unlimited_quotas,
+      total_quotas: pool.total_quotas,
+    });
+    setFormLoading(false);
+    if (error) {
+      toast({ title: 'Erro', description: `Falha ao duplicar: ${error.message}`, variant: 'destructive' });
+    } else {
+      toast({ title: 'Bolão duplicado com sucesso!' });
+      fetchData();
+    }
+  };
+
   const statusLabel: Record<string, string> = {
     open: 'Aberto', closed: 'Fechado', drawn: 'Sorteado', paid: 'Pago',
   };
@@ -333,91 +500,112 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto px-4 py-6 sm:py-10">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-10">
+        <div className="flex items-center justify-between mb-6 sm:mb-8 gap-3">
           <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
             Painel <span className="text-gradient-gold">Admin</span>
           </h1>
-          <Button onClick={() => setCreateOpen(true)} className="bg-gradient-green hover:opacity-90 text-primary-foreground w-full sm:w-auto">
-            <Plus className="mr-1.5 h-4 w-4" /> Novo Bolão
+          <Button onClick={() => setCreateOpen(true)} size="sm" className="bg-gradient-green hover:opacity-90 text-primary-foreground shrink-0">
+            <Plus className="mr-1 h-4 w-4" /> <span className="hidden sm:inline">Novo Bolão</span><span className="sm:hidden">Novo</span>
           </Button>
         </div>
 
         <Tabs defaultValue="pools" className="space-y-4 sm:space-y-6">
-          <TabsList className="bg-muted flex-wrap h-auto gap-1">
-            <TabsTrigger value="pools" className="text-xs sm:text-sm">Bolões</TabsTrigger>
-            <TabsTrigger value="claims" className="text-xs sm:text-sm"><DollarSign className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> Pagamentos</TabsTrigger>
-            <TabsTrigger value="lotteries" className="text-xs sm:text-sm">Modalidades</TabsTrigger>
-            <TabsTrigger value="pix-settings" className="text-xs sm:text-sm">PIX</TabsTrigger>
-            <TabsTrigger value="whatsapp" className="text-xs sm:text-sm"><MessageSquare className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> WhatsApp</TabsTrigger>
+          <TabsList className="bg-muted grid grid-cols-4 sm:grid-cols-7 h-auto gap-1 p-1 overflow-x-auto">
+            <TabsTrigger value="pools" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">Bolões</TabsTrigger>
+            <TabsTrigger value="metrics" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">
+              <BarChart3 className="mr-1 h-3 w-3 hidden sm:inline" />Métricas
+            </TabsTrigger>
+            <TabsTrigger value="users" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">
+              <Users className="mr-1 h-3 w-3 hidden sm:inline" />Usuários
+            </TabsTrigger>
+            <TabsTrigger value="claims" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">
+              <DollarSign className="mr-1 h-3 w-3 hidden sm:inline" />Pagamentos
+            </TabsTrigger>
+            <TabsTrigger value="lotteries" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">Modalidades</TabsTrigger>
+            <TabsTrigger value="pix-settings" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">PIX</TabsTrigger>
+            <TabsTrigger value="whatsapp" className="text-[11px] sm:text-sm py-2 data-[state=active]:bg-background">
+              <MessageSquare className="mr-1 h-3 w-3 hidden sm:inline" />WhatsApp
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="pools">
-            <div className="grid gap-3 sm:gap-4">
+            <div className="grid gap-4">
               {pools.map((pool, i) => (
                 <motion.div
                   key={pool.id}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.03 }}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 rounded-xl border border-border bg-card p-3 sm:p-5"
+                  className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-3"
                 >
-                  <div className="flex-1 space-y-1 min-w-0">
+                  <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-display font-bold text-foreground text-sm sm:text-base break-words">{pool.title}</h3>
-                      <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${statusColor[pool.status ?? 'open']}`}>
+                      <h3 className="font-display font-bold text-foreground text-sm sm:text-base">{pool.title}</h3>
+                      <span className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full ${statusColor[pool.status ?? 'open']}`}>
                         {statusLabel[pool.status ?? 'open']}
                       </span>
                     </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground break-words">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       {pool.lottery_types?.name} • R$ {pool.price_per_quota.toFixed(2)}/cota •{' '}
-                      {pool.sold_quotas ?? 0} cotas vendidas
+                      {pool.sold_quotas ?? 0} vendidas
                       {pool.prize_amount ? ` • Prêmio: R$ ${Number(pool.prize_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : ''}
                     </p>
                   </div>
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                    <Button variant="outline" size="sm" onClick={() => handleViewPurchases(pool)} className="text-xs sm:text-sm">
-                      <Eye className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> Detalhes
+                  <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border">
+                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => handleViewPurchases(pool)}>
+                      <Eye className="mr-1 h-3 w-3" /> Detalhes
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleOpenEditDialog(pool)} className="text-xs sm:text-sm">
-                      <Pencil className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> Editar
+                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => handleOpenEditDialog(pool)}>
+                      <Pencil className="mr-1 h-3 w-3" /> Editar
                     </Button>
                     {pool.status === 'open' && (
-                      <Button variant="outline" size="sm" onClick={() => handleClosePool(pool)} className="text-xs sm:text-sm">
+                      <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => handleClosePool(pool)}>
                         Fechar
                       </Button>
                     )}
                     {(pool.status === 'open' || pool.status === 'closed') && (
                       <Button
                         size="sm"
-                        className="bg-gradient-gold text-secondary-foreground hover:opacity-90 text-xs sm:text-sm"
+                        className="bg-gradient-gold text-secondary-foreground hover:opacity-90 text-xs h-8"
                         onClick={() => {
                           setSelectedPool(pool);
                           setPrizeAmount(pool.prize_amount ? String(pool.prize_amount) : '');
                           setResultOpen(true);
                         }}
                       >
-                        <Trophy className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> Resultado
+                        <Trophy className="mr-1 h-3 w-3" /> Resultado
                       </Button>
                     )}
+                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => handleDuplicatePool(pool)} disabled={formLoading}>
+                      <Copy className="mr-1 h-3 w-3" /> Duplicar
+                    </Button>
                     <Button
                       variant="destructive"
                       size="sm"
+                      className="text-xs h-8"
                       onClick={() => handleDeletePool(pool)}
                       disabled={formLoading}
-                      className="text-xs sm:text-sm"
                     >
-                      <Trash2 className="mr-1 h-3 w-3 sm:h-3.5 sm:w-3.5" /> Excluir
+                      <Trash2 className="mr-1 h-3 w-3" /> Excluir
                     </Button>
                   </div>
                 </motion.div>
               ))}
               {pools.length === 0 && (
-                <div className="rounded-xl border border-border bg-card p-8 sm:p-12 text-center">
-                  <p className="text-muted-foreground text-sm sm:text-base">Nenhum bolão criado ainda.</p>
+                <div className="rounded-xl border border-border bg-card p-12 text-center">
+                  <p className="text-muted-foreground">Nenhum bolão criado ainda.</p>
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="metrics">
+            <AdminMetrics />
+          </TabsContent>
+
+          <TabsContent value="users">
+            <AdminUsers />
           </TabsContent>
 
           <TabsContent value="claims">
@@ -496,10 +684,10 @@ const Admin = () => {
 
       {/* Create Pool Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] flex flex-col">
+        <DialogContent className="bg-card border-border w-[95vw] max-w-lg max-h-[90vh] flex flex-col p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">Criar Novo Bolão</DialogTitle>
-            <DialogDescription className="text-muted-foreground">Preencha os dados para criar um novo bolão.</DialogDescription>
+            <DialogTitle className="font-display text-lg sm:text-xl">Criar Novo Bolão</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs sm:text-sm">Preencha os dados para criar um novo bolão.</DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-4">
             <div className="space-y-4 py-2">
@@ -575,10 +763,10 @@ const Admin = () => {
 
       {/* Result Dialog */}
       <Dialog open={resultOpen} onOpenChange={setResultOpen}>
-        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] flex flex-col">
+        <DialogContent className="bg-card border-border w-[95vw] max-w-lg max-h-[90vh] flex flex-col p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">Publicar Resultado</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+            <DialogTitle className="font-display text-lg sm:text-xl">Publicar Resultado</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs sm:text-sm">
               Informe os números sorteados para o bolão: {selectedPool?.title}
             </DialogDescription>
           </DialogHeader>
@@ -606,49 +794,80 @@ const Admin = () => {
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="bg-card border-border max-w-lg">
+        <DialogContent className="bg-card border-border w-[95vw] max-w-lg max-h-[85vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">Detalhes do Bolão</DialogTitle>
-            <DialogDescription className="text-muted-foreground">Informações e participantes do bolão.</DialogDescription>
+            <DialogTitle className="font-display text-lg sm:text-xl">Detalhes do Bolão</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs sm:text-sm">Informações e participantes do bolão.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="rounded-lg bg-muted p-4 space-y-1">
-              <p className="font-display font-bold text-foreground">{selectedPool?.title}</p>
-              <p className="text-sm text-muted-foreground">
+            <div className="rounded-lg bg-muted p-3 sm:p-4 space-y-1">
+              <p className="font-display font-bold text-foreground text-sm sm:text-base">{selectedPool?.title}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {selectedPool?.sold_quotas ?? 0} cotas vendidas •
                 R$ {((selectedPool?.sold_quotas ?? 0) * (selectedPool?.price_per_quota ?? 0)).toFixed(2)} arrecadado
               </p>
               {selectedPool?.result && (
-                <p className="text-sm font-medium text-primary">
+                <p className="text-xs sm:text-sm font-medium text-primary">
                   Resultado: {(selectedPool.result as any).numbers}
                 </p>
               )}
             </div>
+
+            {/* Export section */}
+            {poolPurchases.length > 0 && (
+              <div className="rounded-lg border border-border p-3 space-y-3">
+                <p className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <Download className="h-3.5 w-3.5" /> Exportar Participantes
+                </p>
+                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                  {[
+                    { key: 'name' as const, label: 'Nome' },
+                    { key: 'phone' as const, label: 'WhatsApp' },
+                    { key: 'quotas' as const, label: 'Cotas' },
+                    { key: 'paid' as const, label: 'Valor Pago' },
+                    { key: 'date' as const, label: 'Data' },
+                  ].map(field => (
+                    <label key={field.key} className="flex items-center gap-1.5 cursor-pointer">
+                      <Checkbox
+                        checked={exportFields[field.key]}
+                        onCheckedChange={(v) => setExportFields(prev => ({ ...prev, [field.key]: v === true }))}
+                        className="h-3.5 w-3.5"
+                      />
+                      <span className="text-xs text-foreground">{field.label}</span>
+                    </label>
+                  ))}
+                </div>
+                <Button size="sm" variant="outline" className="w-full text-xs h-8" onClick={exportParticipants}>
+                  <Download className="mr-1 h-3 w-3" /> Exportar PDF
+                </Button>
+              </div>
+            )}
+
             <div>
-              <h4 className="font-display font-semibold text-foreground mb-2 flex items-center gap-1.5">
+              <h4 className="font-display font-semibold text-foreground mb-2 flex items-center gap-1.5 text-sm">
                 <Users className="h-4 w-4" /> Participantes ({poolPurchases.length})
               </h4>
               <div className="max-h-60 overflow-auto space-y-2">
                 {poolPurchases.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
+                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-border p-2 sm:p-3 text-xs sm:text-sm">
                     <div>
-                      <p className="font-medium text-foreground">{p.profile_name ?? 'Usuário'}</p>
+                      <p className="font-medium text-foreground text-xs sm:text-sm">{p.profile_name ?? 'Usuário'}</p>
                       <div className="flex flex-col">
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">
                           {new Date(p.created_at!).toLocaleDateString('pt-BR')}
                         </p>
                         {p.profile_phone && (
-                          <p className="text-xs text-primary font-medium flex items-center gap-1 mt-0.5">
+                          <p className="text-[10px] sm:text-xs text-primary font-medium flex items-center gap-1 mt-0.5">
                             <MessageSquare className="h-3 w-3" /> {p.profile_phone}
                           </p>
                         )}
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="flex items-center gap-1">
+                      <p className="flex items-center gap-1 text-xs">
                         <Ticket className="h-3 w-3" /> {p.quantity} cota(s)
                       </p>
-                      <p className="text-xs text-muted-foreground">R$ {p.total_paid.toFixed(2)}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">R$ {p.total_paid.toFixed(2)}</p>
                     </div>
                   </div>
                 ))}
@@ -663,10 +882,10 @@ const Admin = () => {
 
       {/* Edit Pool Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] flex flex-col">
+        <DialogContent className="bg-card border-border w-[95vw] max-w-lg max-h-[90vh] flex flex-col p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">Editar Bolão</DialogTitle>
-            <DialogDescription className="text-muted-foreground">Atualize os dados do bolão.</DialogDescription>
+            <DialogTitle className="font-display text-lg sm:text-xl">Editar Bolão</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs sm:text-sm">Atualize os dados do bolão.</DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-4">
             <div className="space-y-4 py-2">

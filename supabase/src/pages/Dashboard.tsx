@@ -4,9 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
 import { Tables } from '@/integrations/supabase/types';
-import { Ticket, Calendar, Trophy, Gift, Bell, TrendingUp, AlertCircle, RotateCw } from 'lucide-react';
+import { Ticket, Calendar, Trophy, Gift, Bell, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ClaimPrizeDialog from '@/components/ClaimPrizeDialog';
+import ReferralSection from '@/components/ReferralSection';
 
 type PurchaseWithPool = Tables<'pool_purchases'> & {
   pools: (Tables<'pools'> & { lottery_types: Tables<'lottery_types'> | null }) | null;
@@ -15,7 +16,7 @@ type PurchaseWithPool = Tables<'pool_purchases'> & {
 const Dashboard = () => {
   const { user } = useAuth();
   const [purchases, setPurchases] = useState<PurchaseWithPool[]>([]);
-  const [claimedPurchases, setClaimedPurchases] = useState<Map<string, { status: string; reason?: string; claimId?: string }>>(new Map());
+  const [claimedPurchases, setClaimedPurchases] = useState<Map<string, { status: string; reason?: string }>>(new Map());
   const [notifications, setNotifications] = useState<Tables<'notifications'>[]>([]);
   const [claimDialog, setClaimDialog] = useState<{
     open: boolean;
@@ -37,7 +38,7 @@ const Dashboard = () => {
         .order('created_at', { ascending: false }),
       supabase
         .from('prize_claims')
-        .select('id, purchase_id, status, rejection_reason')
+        .select('purchase_id, status, rejection_reason')
         .eq('user_id', user.id),
       supabase
         .from('notifications')
@@ -47,9 +48,15 @@ const Dashboard = () => {
     ]);
     if (purchasesRes.data) setPurchases(purchasesRes.data as PurchaseWithPool[]);
     if (claimsRes.data) {
-      const map = new Map<string, { status: string; reason?: string; claimId?: string }>();
+      const map = new Map<string, { status: string; reason?: string }>();
       claimsRes.data.forEach((c: any) => {
-        if (c.purchase_id) map.set(c.purchase_id, { status: c.status, reason: c.rejection_reason, claimId: c.id });
+        if (c.purchase_id) {
+          const existing = map.get(c.purchase_id);
+          // Keep the most recent non-rejected claim, or the rejected one if no other exists
+          if (!existing || existing.status === 'rejected') {
+            map.set(c.purchase_id, { status: c.status, reason: c.rejection_reason });
+          }
+        }
       });
       setClaimedPurchases(map);
     }
@@ -70,63 +77,19 @@ const Dashboard = () => {
     await new Promise(resolve => setTimeout(resolve, 500));
     const { data } = await supabase
       .from('prize_claims')
-      .select('id, purchase_id, status, rejection_reason')
+      .select('purchase_id, status, rejection_reason')
       .eq('user_id', user.id)
       .eq('purchase_id', purchaseId)
       .single();
 
     if (data) {
-      setClaimedPurchases(prev => {
-        const newMap = new Map(prev);
-        newMap.set(purchaseId, { 
-          status: (data as any).status, 
-          reason: (data as any).rejection_reason,
-          claimId: (data as any).id
-        });
-        return newMap;
-      });
+      setClaimedPurchases(prev => new Map(prev).set(purchaseId, { 
+        status: (data as any).status, 
+        reason: (data as any).rejection_reason 
+      }));
     } else {
-      // Se não encontrar, remover do mapa
-      setClaimedPurchases(prev => {
-        const newMap = new Map(prev);
-        newMap.delete(purchaseId);
-        return newMap;
-      });
-    }
-  };
-
-  const handleRetryAfterRejection = async (claimId: string, purchaseId: string) => {
-    // Deletar a solicitação rejeitada para permitir novo envio
-    const { error } = await supabase
-      .from('prize_claims')
-      .delete()
-      .eq('id', claimId);
-
-    if (error) {
-      console.error('Erro ao limpar solicitação rejeitada:', error);
-    } else {
-      // Remover do mapa de solicitações
-      setClaimedPurchases(prev => {
-        const newMap = new Map(prev);
-        newMap.delete(purchaseId);
-        return newMap;
-      });
-
-      // Abrir o diálogo para nova solicitação
-      const purchase = purchases.find(p => p.id === purchaseId);
-      if (purchase) {
-        const lotteryName = purchase.pools?.lottery_types?.name ?? '';
-        const prizeForUser = calcPrizePerQuota(purchase.pools, purchase.quantity);
-        setClaimDialog({
-          open: true,
-          purchaseId: purchase.id,
-          poolId: purchase.pool_id,
-          poolTitle: purchase.pools?.title ?? '',
-          lotteryName,
-          concurso: purchase.pools?.title ?? '',
-          amount: prizeForUser,
-        });
-      }
+      // Se não encontrar, recarregar todos os dados
+      fetchData();
     }
   };
 
@@ -204,7 +167,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto px-4 py-6 sm:py-10">
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-10">
         {notifications.length > 0 && (
           <div className="mb-6 space-y-2">
             {notifications.filter(n => !n.read).map(n => (
@@ -212,21 +175,24 @@ const Dashboard = () => {
                 key={n.id}
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-start sm:items-center gap-3 rounded-lg border border-primary/30 bg-primary/10 p-3 sm:p-4"
+                className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/10 p-3"
               >
-                <Bell className="h-4 w-4 text-primary shrink-0 mt-0.5 sm:mt-0" />
-                <p className="text-xs sm:text-sm text-foreground">{n.message}</p>
+                <Bell className="h-4 w-4 text-primary shrink-0" />
+                <p className="text-sm text-foreground">{n.message}</p>
               </motion.div>
             ))}
           </div>
         )}
 
-        <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-6 sm:mb-8">
+        {/* Referral Section */}
+        <ReferralSection />
+
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-6 sm:mb-8 mt-6">
           Meus <span className="text-gradient-gold">Bolões</span>
         </h1>
 
         {purchases.length > 0 ? (
-          <div className="grid gap-4 sm:gap-6 w-full sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {purchases.map((p, i) => {
               const lotteryName = p.pools?.lottery_types?.name ?? '';
               const gradient = LOTTERY_COLORS[lotteryName] || 'from-primary to-primary/80';
@@ -239,8 +205,6 @@ const Dashboard = () => {
               const claimData = claimedPurchases.get(p.id);
               const claimStatus = claimData?.status;
               const rejectionReason = claimData?.reason;
-              const claimId = claimData?.claimId;
-              const isRejected = claimStatus === 'rejected';
 
               return (
                 <motion.div
@@ -248,39 +212,39 @@ const Dashboard = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="rounded-xl border border-border bg-card overflow-hidden flex flex-col"
+                  className="rounded-xl border border-border bg-card overflow-hidden"
                 >
-                  <div className={`bg-gradient-to-r ${gradient} px-4 py-2 flex items-center justify-between gap-2`}>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs font-bold uppercase tracking-wider text-primary-foreground/90 truncate">
+                  <div className={`bg-gradient-to-r ${gradient} px-4 py-2 flex items-center justify-between`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-primary-foreground/90">
                         {lotteryName}
                       </span>
                       {isUnlimited && (
-                        <span className="bg-white/20 text-[10px] px-2 py-0.5 rounded-full text-white font-bold whitespace-nowrap">
+                        <span className="bg-white/20 text-[10px] px-2 py-0.5 rounded-full text-white font-bold">
                           ILIMITADO
                         </span>
                       )}
                     </div>
-                    <span className="text-xs bg-background/20 px-2 py-0.5 rounded-full text-primary-foreground/80 whitespace-nowrap">
+                    <span className="text-xs bg-background/20 px-2 py-0.5 rounded-full text-primary-foreground/80">
                       {statusLabel[p.pools?.status ?? 'open']}
                     </span>
                   </div>
-                  <div className="p-4 space-y-3 flex-1 flex flex-col">
+                  <div className="p-4 space-y-3">
                     <div className="flex flex-col gap-1">
-                      <h3 className="font-display font-bold text-foreground text-sm sm:text-base break-words">{p.pools?.title}</h3>
+                      <h3 className="font-display font-bold text-foreground">{p.pools?.title}</h3>
                       {isUnlimited && isOpen && (
                         <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded border border-primary/20 w-fit">
                           MAIS CHANCES DE GANHARMOS
                         </span>
                       )}
                     </div>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs sm:text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
                       <span className="flex items-center gap-1.5">
-                        <Ticket className="h-3.5 w-3.5 shrink-0" />
+                        <Ticket className="h-3.5 w-3.5" />
                         {p.quantity} cota(s)
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5 shrink-0" />
+                        <Calendar className="h-3.5 w-3.5" />
                         {p.pools?.draw_date
                           ? new Date(p.pools.draw_date).toLocaleDateString('pt-BR')
                           : 'A definir'}
@@ -290,13 +254,13 @@ const Dashboard = () => {
                     {isOpen && estimatePerQuota > 0 && (
                       <div className="rounded-lg bg-muted/50 border border-border p-3">
                         <div className="flex items-center gap-1.5 mb-1">
-                          <TrendingUp className="h-4 w-4 text-primary shrink-0" />
+                          <TrendingUp className="h-4 w-4 text-primary" />
                           <span className="text-xs text-muted-foreground">Estimativa atual por cota</span>
                         </div>
                         <p className="font-display font-bold text-sm text-primary">
                           R$ {estimatePerQuota.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </p>
-                        <p className="font-display font-bold text-xs sm:text-sm text-foreground">
+                        <p className="font-display font-bold text-foreground">
                           Suas {p.quantity} cota(s): <span className="text-gradient-gold">R$ {(estimatePerQuota * p.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                         </p>
                       </div>
@@ -305,7 +269,7 @@ const Dashboard = () => {
                     {isDrawn && p.pools?.result && (
                       <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 space-y-1">
                         <p className="text-xs text-muted-foreground">Números sorteados</p>
-                        <p className="text-xs sm:text-sm font-semibold text-foreground break-words">
+                        <p className="text-sm font-semibold text-foreground">
                           {(p.pools.result as any).numbers}
                         </p>
                       </div>
@@ -316,71 +280,61 @@ const Dashboard = () => {
                       <p className="font-display font-bold text-foreground">R$ {p.total_paid.toFixed(2)}</p>
                     </div>
 
-                    {isDrawn && (
-                      <div className="rounded-lg bg-accent/20 border border-accent/30 p-3 space-y-2 mt-auto">
+                    {isDrawn && prizeForUser > 0 && (
+                      <div className="rounded-lg bg-accent/20 border border-accent/30 p-3">
                         <div className="flex items-center gap-1.5 mb-1">
-                          <Gift className="h-4 w-4 text-primary shrink-0" />
+                          <Gift className="h-4 w-4 text-primary" />
                           <span className="text-xs text-muted-foreground">Seu prêmio estimado</span>
                         </div>
                         <p className="font-display font-bold text-lg text-gradient-gold">
                           R$ {prizeForUser.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </p>
-                        {alreadyClaimed ? (
-                          <div className="space-y-2 mt-2">
-                            <p className="text-xs text-primary font-medium">✓ Solicitação de recebimento enviada</p>
+                        {alreadyClaimed && claimStatus !== 'rejected' ? (
+                          <div className="space-y-1 mt-1">
+                            <p className="text-xs text-primary">✓ Solicitação de recebimento enviada</p>
                             <p className="text-xs text-muted-foreground">
                               Status: <span className={`font-semibold ${
                                 claimStatus === 'paid' ? 'text-green-400' :
                                 claimStatus === 'in_progress' ? 'text-blue-400' :
-                                claimStatus === 'rejected' ? 'text-red-400' :
                                 'text-yellow-400'
                               }`}>
                                 {claimStatus === 'paid' ? 'Pago' :
                                  claimStatus === 'in_progress' ? 'Em processamento' :
-                                 claimStatus === 'rejected' ? 'Recusado' :
                                  'Pendente'}
                               </span>
                             </p>
-                            
-                            {isRejected && (
-                              <div className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 p-2 space-y-2">
-                                {rejectionReason && (
-                                  <div className="flex items-start gap-2">
-                                    <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-[10px] text-red-400 font-semibold mb-1">Motivo da Recusa:</p>
-                                      <p className="text-[10px] text-red-300 leading-relaxed break-words">{rejectionReason}</p>
-                                    </div>
-                                  </div>
-                                )}
-                                <Button
-                                  size="sm"
-                                  className="w-full mt-2 bg-gradient-green hover:opacity-90 text-primary-foreground text-xs h-8"
-                                  onClick={() => claimId && handleRetryAfterRejection(claimId, p.id)}
-                                >
-                                  <RotateCw className="mr-1 h-3 w-3" /> Tentar Novamente
-                                </Button>
-                              </div>
-                            )}
                           </div>
                         ) : (
-                          <Button
-                            size="sm"
-                            className="mt-2 bg-gradient-green hover:opacity-90 text-primary-foreground w-full text-xs sm:text-sm h-8 sm:h-9"
-                            onClick={() =>
-                              setClaimDialog({
-                                open: true,
-                                purchaseId: p.id,
-                                poolId: p.pool_id,
-                                poolTitle: p.pools?.title ?? '',
-                                lotteryName,
-                                concurso: p.pools?.title ?? '',
-                                amount: prizeForUser,
-                              })
-                            }
-                          >
-                            <Gift className="mr-1.5 h-3.5 w-3.5" /> Receber Prêmio
-                          </Button>
+                          <div className="space-y-2 mt-1">
+                            {claimStatus === 'rejected' && (
+                              <div className="rounded bg-red-500/10 border border-red-500/20 p-2">
+                                <p className="text-xs text-red-400 font-semibold">Solicitação recusada</p>
+                                {rejectionReason && (
+                                  <p className="text-[10px] text-red-400 leading-tight mt-1">
+                                    <span className="font-bold">Motivo:</span> {rejectionReason}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            <Button
+                              size="sm"
+                              className="bg-gradient-green hover:opacity-90 text-primary-foreground w-full"
+                              onClick={() =>
+                                setClaimDialog({
+                                  open: true,
+                                  purchaseId: p.id,
+                                  poolId: p.pool_id,
+                                  poolTitle: p.pools?.title ?? '',
+                                  lotteryName,
+                                  concurso: p.pools?.title ?? '',
+                                  amount: prizeForUser,
+                                })
+                              }
+                            >
+                              <Gift className="mr-1.5 h-3.5 w-3.5" />
+                              {claimStatus === 'rejected' ? 'Solicitar Novamente' : 'Receber Prêmio'}
+                            </Button>
+                          </div>
                         )}
                       </div>
                     )}
@@ -390,10 +344,10 @@ const Dashboard = () => {
             })}
           </div>
         ) : (
-          <div className="rounded-xl border border-border bg-card p-8 sm:p-12 text-center">
+          <div className="rounded-xl border border-border bg-card p-12 text-center">
             <Trophy className="mx-auto h-12 w-12 text-muted-foreground/40" />
-            <p className="mt-4 text-base sm:text-lg text-muted-foreground">Você ainda não participou de nenhum bolão.</p>
-            <p className="text-xs sm:text-sm text-muted-foreground/60">Explore os bolões disponíveis na página inicial!</p>
+            <p className="mt-4 text-lg text-muted-foreground">Você ainda não participou de nenhum bolão.</p>
+            <p className="text-sm text-muted-foreground/60">Explore os bolões disponíveis na página inicial!</p>
           </div>
         )}
       </div>

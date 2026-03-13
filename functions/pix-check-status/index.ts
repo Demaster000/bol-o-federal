@@ -6,6 +6,77 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function grantReferralReward(supabaseAdmin: any, userId: string, poolId: string, totalAmount: number, quantity: number) {
+  try {
+    // Check if user was referred by someone
+    const { data: referral } = await supabaseAdmin
+      .from("referrals")
+      .select("id, referrer_id, status")
+      .eq("referred_id", userId)
+      .single();
+
+    if (!referral || !referral.referrer_id) return;
+
+    // Check if referrer already got a reward for this pool from this referral
+    const { data: existingReward } = await supabaseAdmin
+      .from("referral_rewards")
+      .select("id")
+      .eq("referral_id", referral.id)
+      .eq("pool_id", poolId)
+      .single();
+
+    if (existingReward) return; // Already rewarded for this pool
+
+    // Get pool price for the free quota
+    const { data: pool } = await supabaseAdmin
+      .from("pools")
+      .select("price_per_quota, title, status")
+      .eq("id", poolId)
+      .single();
+
+    if (!pool || pool.status !== "open") return;
+
+    // Create a free purchase for the referrer (1 quota, R$0 paid)
+    const { data: bonusPurchase } = await supabaseAdmin
+      .from("pool_purchases")
+      .insert({
+        pool_id: poolId,
+        user_id: referral.referrer_id,
+        quantity: 1,
+        total_paid: 0,
+      })
+      .select("id")
+      .single();
+
+    if (bonusPurchase) {
+      // Record the reward
+      await supabaseAdmin.from("referral_rewards").insert({
+        referral_id: referral.id,
+        referrer_id: referral.referrer_id,
+        pool_id: poolId,
+        purchase_id: bonusPurchase.id,
+      });
+
+      // Update referral status if first reward
+      if (referral.status === "pending") {
+        await supabaseAdmin
+          .from("referrals")
+          .update({ status: "rewarded", rewarded_at: new Date().toISOString() })
+          .eq("id", referral.id);
+      }
+
+      // Notify the referrer
+      await supabaseAdmin.from("notifications").insert({
+        user_id: referral.referrer_id,
+        message: `🎉 Você ganhou 1 cota grátis no bolão "${pool.title}" porque seu indicado comprou cotas!`,
+        pool_id: poolId,
+      });
+    }
+  } catch (e) {
+    console.error("Referral reward error:", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -93,17 +164,29 @@ Deno.serve(async (req) => {
             );
 
             const paidAt = new Date().toISOString();
-            await supabaseAdmin
+            // Use conditional update to prevent race condition with webhook
+            const { data: updated, error: updateErr } = await supabaseAdmin
               .from("pix_payments")
               .update({ status: "paid", paid_at: paidAt })
-              .eq("id", payment.id);
+              .eq("id", payment.id)
+              .eq("status", "pending")
+              .select("id")
+              .single();
 
-            await supabaseAdmin.from("pool_purchases").insert({
-              pool_id: payment.pool_id,
-              user_id: userId,
-              quantity: payment.quantity,
-              total_paid: payment.total_amount,
-            });
+            // Only create purchase if we were the one to update (prevents duplicates)
+            if (updated && !updateErr) {
+              const { data: purchase } = await supabaseAdmin.from("pool_purchases").insert({
+                pool_id: payment.pool_id,
+                user_id: userId,
+                quantity: payment.quantity,
+                total_paid: payment.total_amount,
+              }).select("id").single();
+
+              // Grant referrer 1 free quota
+              if (purchase) {
+                await grantReferralReward(supabaseAdmin, userId, payment.pool_id, payment.total_amount, payment.quantity);
+              }
+            }
 
             return new Response(
               JSON.stringify({ status: "paid", paid_at: paidAt }),

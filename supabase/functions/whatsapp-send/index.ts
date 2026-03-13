@@ -26,6 +26,15 @@ function formatDateTimeBR(date: Date): string {
   return date.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+// Interpreta uma data do banco (sem timezone) como horário de Brasília (UTC-3)
+function parseDateAsBRT(dateStr: string): Date {
+  // Se a data não tem timezone info, adiciona o offset de BRT (-03:00)
+  if (!dateStr.includes('Z') && !dateStr.includes('+') && !/\d{2}:\d{2}:\d{2}-\d{2}/.test(dateStr)) {
+    return new Date(dateStr + '-03:00');
+  }
+  return new Date(dateStr);
+}
+
 function normalizeIntervalMinutes(interval: number | null | undefined): number {
   if (!interval || Number.isNaN(interval)) return 60;
   return Math.max(5, Math.floor(interval));
@@ -33,12 +42,10 @@ function normalizeIntervalMinutes(interval: number | null | undefined): number {
 
 function shouldRunScheduledBroadcast(intervalMinutes: number, now = new Date()): boolean {
   const interval = normalizeIntervalMinutes(intervalMinutes);
-  // Check if we should run based on the last broadcast time
-  // We use a more lenient approach: run if it's been at least interval minutes since last run
   const totalMinutes = Math.floor(now.getTime() / (1000 * 60));
-  // Allow execution within a 2-minute window to account for cron timing variations
-  const remainder = totalMinutes % interval;
-  return remainder === 0 || remainder === 1 || (interval > 5 && remainder === interval - 1);
+  // Dispara apenas no minuto exato do intervalo (ex: se interval=60, dispara quando totalMinutes % 60 == 0)
+  // Isso evita que disparos em segundos diferentes ou pequenas variações de cron causem envios múltiplos
+  return totalMinutes % interval === 0;
 }
 
 async function getSettings(supabaseAdmin: any): Promise<WhatsAppSettings | null> {
@@ -66,7 +73,7 @@ async function sendBroadcastOpenPools(supabaseAdmin: any, settings: WhatsAppSett
   const allMessages: string[] = [];
 
   for (const pool of openPools) {
-    const drawDate = pool.draw_date ? new Date(pool.draw_date) : null;
+    const drawDate = pool.draw_date ? parseDateAsBRT(pool.draw_date) : null;
     const poolLink = siteUrl ? `${siteUrl}/?pool=${pool.id}` : "Acesse o site";
 
     let deadlineCotas = "A definir";
@@ -179,21 +186,39 @@ serve(async (req: Request) => {
 
     const { type, data } = await req.json();
 
-    // Auth check - only admins or internal calls
+    // Auth check
     const authHeader = req.headers.get("Authorization");
-    if (authHeader?.startsWith("Bearer ")) {
-      const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-      const supabaseAuth = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
-      if (userError || !userData?.user) {
+    const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const token = authHeader?.replace("Bearer ", "") || "";
+
+    // Service role key = internal call (trusted)
+    const isInternalCall = token === svcKey;
+
+    // Allow scheduled_broadcast without auth (called by pg_cron which can't send service role key)
+    const isCronBroadcast = type === "scheduled_broadcast";
+
+    if (!isInternalCall && !isCronBroadcast) {
+      if (!authHeader) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const userId = userData.user.id;
+
+      // It's a user JWT — validate admin role
+      const supabaseAuth = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const jwtToken = authHeader.replace("Bearer ", "");
+      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(jwtToken);
+      if (claimsError || !claimsData?.claims) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const userId = claimsData.claims.sub as string;
       const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: userId, _role: "admin" });
       if (!isAdmin) {
         return new Response(JSON.stringify({ error: "Admin only" }), {
@@ -201,8 +226,6 @@ serve(async (req: Request) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-    } else {
-      // Internal call (from other edge functions or cron) - allow if no auth header
     }
 
     const settings = await getSettings(supabaseAdmin);
@@ -229,7 +252,7 @@ serve(async (req: Request) => {
         
         let deadlineCotas = "A definir";
         if (draw_date) {
-          const drawDate = new Date(draw_date);
+          const drawDate = parseDateAsBRT(draw_date);
           const minus5h = new Date(drawDate.getTime() - 5 * 60 * 60 * 1000);
           deadlineCotas = formatDateTimeBR(minus5h);
         }
@@ -303,6 +326,24 @@ serve(async (req: Request) => {
         break;
       }
 
+      case "referral_broadcast": {
+        const siteUrl = (settings.site_url || "").replace(/\/$/, "");
+        const registerLink = siteUrl ? `${siteUrl}/login?mode=register` : "Acesse o site";
+
+        const message = `🎁 *INDIQUE E GANHE!* 🎁\n\n` +
+          `Você sabia que pode ganhar *cotas GRÁTIS* no Sorte Compartilhada? 🍀\n\n` +
+          `📌 *Como funciona:*\n` +
+          `1️⃣ Cadastre-se na plataforma\n` +
+          `2️⃣ Compartilhe seu link de indicação com amigos\n` +
+          `3️⃣ Quando seu indicado *comprar cotas*, você ganha *1 cota grátis* do mesmo sorteio!\n\n` +
+          `💰 *Sem limite de indicações!* Quanto mais amigos, mais cotas grátis você ganha!\n\n` +
+          `👉 Cadastre-se agora: ${registerLink}\n\n` +
+          `✅ Indique, compartilhe e aumente suas chances de ganhar! 🚀`;
+
+        result = await sendWhatsAppMessage(settings, message);
+        break;
+      }
+
       case "scheduled_broadcast": {
         if (!settings.broadcast_open_pools) {
           return new Response(JSON.stringify({ success: true, reason: "Divulgação periódica desabilitada" }), {
@@ -337,14 +378,16 @@ serve(async (req: Request) => {
       }
 
       case "custom": {
-        const { message } = data;
-        if (!message) {
+        const { message } = data || {};
+        if (!message || typeof message !== "string" || message.trim().length === 0) {
           return new Response(JSON.stringify({ error: "Mensagem não informada" }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        result = await sendWhatsAppMessage(settings, message);
+        // Limit message length to prevent abuse
+        const sanitizedMessage = message.trim().slice(0, 4096);
+        result = await sendWhatsAppMessage(settings, sanitizedMessage);
         break;
       }
 

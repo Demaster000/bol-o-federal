@@ -80,6 +80,18 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Block purchases 5 hours before draw (participation deadline)
+    if (pool.draw_date) {
+      const drawTime = new Date(pool.draw_date).getTime();
+      const deadline = drawTime - 5 * 60 * 60 * 1000;
+      if (Date.now() >= deadline) {
+        return new Response(
+          JSON.stringify({ error: "Participação encerrada. O prazo para compra de cotas já expirou (5 horas antes do sorteio)." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     const totalAmount = quantity * pool.price_per_quota;
 
     // Create PIX payment via Mercado Pago

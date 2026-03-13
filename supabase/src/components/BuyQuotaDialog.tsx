@@ -100,7 +100,23 @@ const BuyQuotaDialog = ({ pool, open, onClose, onSuccess }: BuyQuotaDialogProps)
         if (data.status === 'paid') {
           setPixState(prev => ({ ...prev, step: 'success' }));
           if (pollRef.current) clearInterval(pollRef.current);
-          toast({ title: 'Pagamento confirmado!', description: 'Suas cotas foram registradas com sucesso.' });
+          toast({ 
+            title: 'Pagamento confirmado! 🎉', 
+            description: (
+              <div className="space-y-1">
+                <p>Suas cotas foram registradas com sucesso.</p>
+                <a 
+                  href="https://chat.whatsapp.com/DuEM6vpNAVeELSP4wuIamg" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[#25D366] font-semibold hover:underline mt-1"
+                >
+                  📱 Entre na nossa comunidade do WhatsApp!
+                </a>
+              </div>
+            ),
+            duration: 10000,
+          });
           onSuccess();
         } else if (data.status === 'expired') {
           setPixState(prev => ({ ...prev, step: 'expired' }));

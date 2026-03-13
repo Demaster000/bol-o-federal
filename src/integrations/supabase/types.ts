@@ -297,25 +297,107 @@ export type Database = {
       }
       profiles: {
         Row: {
+          cpf: string | null
           created_at: string | null
           full_name: string | null
           id: string
           phone: string | null
+          referral_code: string | null
           user_id: string
         }
         Insert: {
+          cpf?: string | null
           created_at?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null
+          referral_code?: string | null
           user_id: string
         }
         Update: {
+          cpf?: string | null
           created_at?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null
+          referral_code?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      referral_rewards: {
+        Row: {
+          created_at: string
+          id: string
+          pool_id: string
+          purchase_id: string | null
+          referral_id: string
+          referrer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pool_id: string
+          purchase_id?: string | null
+          referral_id: string
+          referrer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pool_id?: string
+          purchase_id?: string | null
+          referral_id?: string
+          referrer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_rewards_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "pools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "pool_purchases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          created_at: string
+          id: string
+          referred_id: string
+          referrer_id: string
+          rewarded_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referred_id: string
+          referrer_id: string
+          rewarded_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+          rewarded_at?: string | null
+          status?: string
         }
         Relationships: []
       }
@@ -403,6 +485,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      lookup_referral_code: { Args: { _code: string }; Returns: string }
+      trigger_whatsapp_broadcast: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "user"
