@@ -22,33 +22,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const checkAdminStatus = async (currentSession: Session | null) => {
-    if (!currentSession?.user) {
+    if (!currentSession?.access_token) {
       setIsAdmin(false);
       return;
     }
 
-    // Prioridade 1: Verificar claims no JWT (mais rápido e evita RLS/RPC issues)
-    // O Supabase pode ser configurado para incluir roles no app_metadata
-    const userRole = currentSession.user.app_metadata?.role;
-    if (userRole === 'admin') {
-      setIsAdmin(true);
-      return;
-    }
-
-    // Prioridade 2: Verificar via RPC (fallback se não estiver no JWT)
     try {
+      // Ler diretamente o JWT
+      const payload = JSON.parse(
+        atob(currentSession.access_token.split('.')[1])
+      );
+
+      const role = payload?.app_metadata?.role;
+
+      if (role === 'admin') {
+        setIsAdmin(true);
+        return;
+      }
+
+      // Fallback RPC
       const { data, error } = await supabase.rpc('has_role', { 
-        _user_id: currentSession.user.id, 
+        _user_id: payload.sub, 
         _role: 'admin' 
       });
-      
+
       if (!error && data === true) {
         setIsAdmin(true);
       } else {
         setIsAdmin(false);
       }
+
     } catch (err) {
-      console.error('Erro ao verificar admin via RPC:', err);
+      console.error('Erro ao verificar admin:', err);
       setIsAdmin(false);
     }
   };
@@ -63,10 +68,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Carregar sessão inicial
     refreshAuth();
 
-    // Ouvir mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
