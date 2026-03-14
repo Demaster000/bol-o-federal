@@ -10,6 +10,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string, phone: string, cpf: string, referralCode?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  refreshAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,42 +21,56 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const checkAdmin = async (userId: string) => {
+  const checkAdminStatus = async (currentSession: Session | null) => {
+    if (!currentSession?.user) {
+      setIsAdmin(false);
+      return;
+    }
+
+    // Prioridade 1: Verificar claims no JWT (mais rápido e evita RLS/RPC issues)
+    // O Supabase pode ser configurado para incluir roles no app_metadata
+    const userRole = currentSession.user.app_metadata?.role;
+    if (userRole === 'admin') {
+      setIsAdmin(true);
+      return;
+    }
+
+    // Prioridade 2: Verificar via RPC (fallback se não estiver no JWT)
     try {
-      const { data, error } = await supabase.rpc('has_role', { _user_id: userId, _role: 'admin' });
+      const { data, error } = await supabase.rpc('has_role', { 
+        _user_id: currentSession.user.id, 
+        _role: 'admin' 
+      });
       
-      // Tratamento correto: data é um booleano retornado pela RPC
-      if (error) {
-        console.error('Erro ao verificar role de admin:', error);
-        setIsAdmin(false);
+      if (!error && data === true) {
+        setIsAdmin(true);
       } else {
-        // data é um booleano, então usamos diretamente
-        setIsAdmin(data === true);
+        setIsAdmin(false);
       }
     } catch (err) {
-      console.error('Exceção ao verificar role de admin:', err);
+      console.error('Erro ao verificar admin via RPC:', err);
       setIsAdmin(false);
     }
   };
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        setTimeout(() => checkAdmin(session.user.id), 0);
-      } else {
-        setIsAdmin(false);
-      }
-      setLoading(false);
-    });
+  const refreshAuth = async () => {
+    setLoading(true);
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    setSession(currentSession);
+    setUser(currentSession?.user ?? null);
+    await checkAdminStatus(currentSession);
+    setLoading(false);
+  };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        checkAdmin(session.user.id);
-      }
+  useEffect(() => {
+    // Carregar sessão inicial
+    refreshAuth();
+
+    // Ouvir mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      await checkAdminStatus(currentSession);
       setLoading(false);
     });
 
@@ -63,7 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string, phone: string, cpf: string, referralCode?: string) => {
-    const { error, data } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -76,46 +91,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       },
     });
     
-    // Se o registro foi bem-sucedido, fazer login automático
     if (!error) {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      
-      // After login, create referral relationship if referral code exists
-      if (!signInError && referralCode) {
-        try {
-          // Find the referrer by secure function
-          const { data: referrerUserId } = await supabase
-            .rpc('lookup_referral_code', { _code: referralCode });
-          
-          if (referrerUserId) {
-            const { data: currentUser } = await supabase.auth.getUser();
-            if (currentUser?.user && referrerUserId !== currentUser.user.id) {
-              await supabase.from('referrals').insert({
-                referrer_id: referrerUserId,
-                referred_id: currentUser.user.id,
-              });
-            }
-          }
-        } catch (e) {
-          console.error('Referral tracking error:', e);
-        }
-      }
+      await signIn(email, password);
     }
     
     return { error };
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error && data.session) {
+      setSession(data.session);
+      setUser(data.session.user);
+      await checkAdminStatus(data.session);
+    }
     return { error };
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setIsAdmin(false);
+    setUser(null);
+    setSession(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, isAdmin, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, isAdmin, loading, signUp, signIn, signOut, refreshAuth }}>
       {children}
     </AuthContext.Provider>
   );
