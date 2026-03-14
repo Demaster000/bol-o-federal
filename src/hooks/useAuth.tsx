@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
+import { jwtDecode } from 'jwt-decode';
 
 interface AuthContextType {
   user: User | null;
@@ -20,17 +21,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const checkAdmin = async (userId: string) => {
-    const { data } = await supabase.rpc('has_role', { _user_id: userId, _role: 'admin' });
-    setIsAdmin(!!data);
-  };
+  const checkAdmin = async (session: Session) => {
+    let isAdminRole = false;
+    if (session?.access_token) {
+      try {
+        const decodedToken: any = jwtDecode(session.access_token);
+        if (decodedToken?.app_metadata?.role === 'admin') {
+          isAdminRole = true;
+        }
+      } catch (error) {
+        console.error('Error decoding JWT:', error);
+      }
+    }
+
+    if (isAdminRole) {
+      setIsAdmin(true);
+    } else {
+      // Fallback to RPC if role not found in token or token decoding failed
+      const { data } = await supabase.rpc('has_role', { _user_id: session.user.id, _role: 'admin' });
+      setIsAdmin(!!data);
+    }
+ 
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        setTimeout(() => checkAdmin(session.user.id), 0);
+        setTimeout(() => checkAdmin(session), 0);
       } else {
         setIsAdmin(false);
       }
@@ -41,7 +59,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        checkAdmin(session.user.id);
+        checkAdmin(session);
       }
       setLoading(false);
     });
