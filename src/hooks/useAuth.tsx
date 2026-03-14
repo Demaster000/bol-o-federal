@@ -21,11 +21,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const checkAdmin = async (session: Session) => {
+  const checkAdmin = async (currentSession: Session) => {
     let isAdminRole = false;
-    if (session?.access_token) {
+    
+    // 1. Tentar ler do JWT (mais rápido e resolve o problema de app_metadata não populado)
+    if (currentSession?.access_token) {
       try {
-        const decodedToken: any = jwtDecode(session.access_token);
+        const decodedToken: any = jwtDecode(currentSession.access_token);
         if (decodedToken?.app_metadata?.role === 'admin') {
           isAdminRole = true;
         }
@@ -34,21 +36,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
 
+    // 2. Se não encontrou no JWT, tentar via user.app_metadata diretamente (fallback padrão)
+    if (!isAdminRole && currentSession?.user?.app_metadata?.role === 'admin') {
+      isAdminRole = true;
+    }
+
     if (isAdminRole) {
       setIsAdmin(true);
     } else {
-      // Fallback to RPC if role not found in token or token decoding failed
-      const { data } = await supabase.rpc('has_role', { _user_id: session.user.id, _role: 'admin' });
-      setIsAdmin(!!data);
+      // 3. Fallback final via RPC para garantir consistência com o banco
+      try {
+        const { data } = await supabase.rpc('has_role', { 
+          _user_id: currentSession.user.id, 
+          _role: 'admin' 
+        });
+        setIsAdmin(!!data);
+      } catch (error) {
+        console.error('Error checking admin role via RPC:', error);
+        setIsAdmin(false);
+      }
     }
- 
+  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        setTimeout(() => checkAdmin(session), 0);
+        checkAdmin(session);
       } else {
         setIsAdmin(false);
       }
@@ -68,7 +83,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string, phone: string, cpf: string, referralCode?: string) => {
-    const { error, data } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -81,14 +96,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       },
     });
     
-    // Se o registro foi bem-sucedido, fazer login automático
     if (!error) {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       
-      // After login, create referral relationship if referral code exists
       if (!signInError && referralCode) {
         try {
-          // Find the referrer by secure function
           const { data: referrerUserId } = await supabase
             .rpc('lookup_referral_code', { _code: referralCode });
           
