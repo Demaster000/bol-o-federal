@@ -377,55 +377,6 @@ serve(async (req: Request) => {
         break;
       }
 
-      case "send_bulk": {
-        const { message, numbers } = data || {};
-        if (!message || typeof message !== "string" || message.trim().length === 0) {
-          return new Response(JSON.stringify({ error: "Mensagem não informada" }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        if (!Array.isArray(numbers) || numbers.length === 0) {
-          return new Response(JSON.stringify({ error: "Lista de números vazia ou inválida" }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        const sanitizedMessage = message.trim().slice(0, 4096);
-        const results = [];
-        let successCount = 0;
-
-        for (const number of numbers) {
-          // Remove non-digit characters
-          let cleanNumber = String(number).replace(/\D/g, "");
-          
-          if (!cleanNumber) continue;
-
-          // Assumes Brazilian number if it doesn't start with country code +55 and has 10/11 digits
-          if (cleanNumber.length === 10 || cleanNumber.length === 11) {
-            cleanNumber = "55" + cleanNumber;
-          }
-
-          // Use the Evolution API format
-          const formattedNumber = `${cleanNumber}@s.whatsapp.net`;
-          
-          const sendResult = await sendToDestination(settings, formattedNumber, sanitizedMessage);
-          results.push({ number: cleanNumber, ...sendResult });
-          if (sendResult.success) successCount++;
-          
-          // Small delay to avoid rate limiting
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-
-        result = { 
-          success: successCount > 0, 
-          message: `Enviado para ${successCount} de ${numbers.length} números.`,
-          results 
-        };
-        break;
-      }
-
       case "custom": {
         const { message } = data || {};
         if (!message || typeof message !== "string" || message.trim().length === 0) {

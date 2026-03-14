@@ -21,21 +21,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const checkAdmin = async (userId: string) => {
-    try {
-      const { data, error } = await supabase.rpc('has_role', { _user_id: userId, _role: 'admin' });
-      
-      // Tratamento correto: data é um booleano retornado pela RPC
-      if (error) {
-        console.error('Erro ao verificar role de admin:', error);
-        setIsAdmin(false);
-      } else {
-        // data é um booleano, então usamos diretamente
-        setIsAdmin(data === true);
-      }
-    } catch (err) {
-      console.error('Exceção ao verificar role de admin:', err);
-      setIsAdmin(false);
-    }
+    const { data } = await supabase.rpc('has_role', { _user_id: userId, _role: 'admin' });
+    setIsAdmin(!!data);
   };
 
   useEffect(() => {

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { MessageSquare, Send, TestTube, Save, Eye, EyeOff, Gift, Users, Upload } from 'lucide-react';
+import { MessageSquare, Send, TestTube, Save, Eye, EyeOff, Gift } from 'lucide-react';
 
 interface WhatsAppSettings {
   id: string;
@@ -35,13 +35,6 @@ const AdminWhatsApp = () => {
   const [customMessage, setCustomMessage] = useState('');
   const [sendingCustom, setSendingCustom] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
-
-  // Community Invite states
-  const [inviteFile, setInviteFile] = useState<File | null>(null);
-  const [inviteMessage, setInviteMessage] = useState('');
-  const [inviteLink, setInviteLink] = useState('');
-  const [sendingInvites, setSendingInvites] = useState(false);
-
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
@@ -150,55 +143,6 @@ const AdminWhatsApp = () => {
     }
     setSendingCustom(false);
   };
-
-  const handleSendInvites = async () => {
-    if (!inviteFile || !inviteMessage.trim() || !inviteLink.trim()) {
-      toast({ title: 'Aviso', description: 'Preencha todos os campos e anexe o arquivo .txt.', variant: 'destructive' });
-      return;
-    }
-
-    setSendingInvites(true);
-    try {
-      // Ler o arquivo txt
-      const text = await inviteFile.text();
-      const lines = text.split('\n');
-      
-      const numbers: string[] = [];
-      for (const line of lines) {
-        // Extrai apenas os números de cada linha
-        const cleanLine = line.replace(/\D/g, '');
-        if (cleanLine.length >= 10) { // Assume que precisa ter pelo menos DDD+Número (Ex: 48999999999)
-          numbers.push(cleanLine);
-        }
-      }
-
-      if (numbers.length === 0) {
-        toast({ title: 'Aviso', description: 'Nenhum número válido encontrado no arquivo.', variant: 'destructive' });
-        setSendingInvites(false);
-        return;
-      }
-
-      const finalMessage = `${inviteMessage}\n\n${inviteLink}`;
-      
-      const result = await callWhatsApp('send_bulk', { message: finalMessage, numbers });
-      
-      if (result.success || result.message) {
-        toast({ 
-          title: 'Convites enviados!', 
-          description: result.message || `O envio para ${numbers.length} contatos foi iniciado.` 
-        });
-        setInviteFile(null);
-        setInviteMessage('');
-        setInviteLink('');
-      } else {
-        toast({ title: 'Erro', description: result.error, variant: 'destructive' });
-      }
-    } catch (err) {
-      toast({ title: 'Erro', description: String(err), variant: 'destructive' });
-    }
-    setSendingInvites(false);
-  };
-
 
   if (loading) return <div className="text-muted-foreground text-center py-8">Carregando...</div>;
   if (!settings) return <div className="text-muted-foreground text-center py-8">Erro ao carregar configurações.</div>;
@@ -433,58 +377,6 @@ const AdminWhatsApp = () => {
             {sendingCustom ? 'Enviando...' : 'Enviar Mensagem'}
           </Button>
         </div>
-      </div>
-
-      {/* Community Invite */}
-      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-        <h3 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
-          <Users className="h-5 w-5 text-primary" /> Convite para Comunidade
-        </h3>
-        <p className="text-sm text-muted-foreground">Envie mensagens em lote convidando pessoas para participar de um grupo ou comunidade.</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-4 w-full">
-            <div className="space-y-2">
-              <Label>Arquivo de Contatos (.txt)</Label>
-              <Input
-                type="file"
-                accept=".txt"
-                className="bg-muted file:bg-primary file:text-primary-foreground file:border-0 file:rounded-md file:px-4 file:py-1 file:mr-4 file:cursor-pointer hover:file:opacity-90 cursor-pointer"
-                onChange={(e) => setInviteFile(e.target.files?.[0] || null)}
-              />
-              <p className="text-xs text-muted-foreground">Um número por linha (com DDD), ex: 48 996844379</p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Link da Comunidade ou Grupo *</Label>
-              <Input
-                className="bg-muted"
-                placeholder="https://chat.whatsapp.com/..."
-                value={inviteLink}
-                onChange={(e) => setInviteLink(e.target.value)}
-              />
-            </div>
-          </div>
-          
-          <div className="space-y-2 w-full h-full flex flex-col">
-            <Label>Mensagem de Convite *</Label>
-            <Textarea
-              className="bg-muted flex-grow min-h-[120px]"
-              placeholder="Escreva a mensagem de convite. O link será adicionado automaticamente ao final."
-              value={inviteMessage}
-              onChange={(e) => setInviteMessage(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <Button
-          onClick={handleSendInvites}
-          disabled={sendingInvites || !inviteFile || !inviteMessage.trim() || !inviteLink.trim() || !settings.enabled || !isConfigured}
-          className="bg-primary hover:opacity-90 text-primary-foreground w-full sm:w-auto"
-        >
-          {sendingInvites ? <Upload className="mr-1.5 h-4 w-4 animate-bounce" /> : <Send className="mr-1.5 h-4 w-4" />}
-          {sendingInvites ? 'Enviando e Processando...' : 'Enviar Convites'}
-        </Button>
       </div>
     </div>
   );
