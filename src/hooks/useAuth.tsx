@@ -26,8 +26,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // 1. Tentar ler do JWT (mais rápido e resolve o problema de app_metadata não populado)
     if (currentSession?.access_token) {
       try {
-        // Decodificação manual do JWT
-        const decodedToken: any = JSON.parse(atob(currentSession.access_token.split('.')[1]));
+        // Decodificação robusta de JWT Base64Url
+        const base64Url = currentSession.access_token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        );
+        
+        const decodedToken = JSON.parse(jsonPayload);
         if (decodedToken?.app_metadata?.role === 'admin') {
           isAdminRole = true;
         }
