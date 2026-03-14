@@ -20,61 +20,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-<<<<<<< HEAD
-  const checkAdminStatus = async (currentSession: Session | null) => {
-    if (!currentSession?.access_token) {
-      setIsAdmin(false);
-      return;
-    }
-
-    try {
-      // Ler diretamente o JWT
-      const payload = JSON.parse(
-        atob(currentSession.access_token.split('.')[1])
-      );
-
-      const role = payload?.app_metadata?.role;
-
-      if (role === 'admin') {
-        setIsAdmin(true);
-        return;
-      }
-
-      // Fallback RPC
-      const { data, error } = await supabase.rpc('has_role', { 
-        _user_id: payload.sub, 
-        _role: 'admin' 
-      });
-
-      if (!error && data === true) {
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(false);
-      }
-
-    } catch (err) {
-      console.error('Erro ao verificar admin:', err);
-      setIsAdmin(false);
-    }
-  };
-
-  const refreshAuth = async () => {
-    setLoading(true);
-    const { data: { session: currentSession } } = await supabase.auth.getSession();
-    setSession(currentSession);
-    setUser(currentSession?.user ?? null);
-    await checkAdminStatus(currentSession);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    refreshAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      await checkAdminStatus(currentSession);
-=======
   const checkAdmin = async (userId: string) => {
     const { data } = await supabase.rpc('has_role', { _user_id: userId, _role: 'admin' });
     setIsAdmin(!!data);
@@ -98,7 +43,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (session?.user) {
         checkAdmin(session.user.id);
       }
->>>>>>> 306f10ebf6358a578451209085a382e5029ef1ba
       setLoading(false);
     });
 
