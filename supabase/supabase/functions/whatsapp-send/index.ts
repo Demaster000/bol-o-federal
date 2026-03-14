@@ -366,6 +366,49 @@ serve(async (req: Request) => {
         break;
       }
 
+      case "send_bulk": {
+        const { message, numbers } = data || {};
+        if (!message || typeof message !== "string" || message.trim().length === 0) {
+          return new Response(JSON.stringify({ error: "Mensagem não informada" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (!Array.isArray(numbers) || numbers.length === 0) {
+          return new Response(JSON.stringify({ error: "Nenhum número fornecido" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Limit message length to prevent abuse
+        const sanitizedMessage = message.trim().slice(0, 4096);
+        
+        // Send to each number individually
+        const sendResults: { number: string; success: boolean; error?: string }[] = [];
+        for (const number of numbers) {
+          const cleanNumber = String(number).replace(/\D/g, "");
+          if (cleanNumber.length >= 10) {
+            const sendResult = await sendToDestination(settings, cleanNumber, sanitizedMessage);
+            sendResults.push({
+              number: cleanNumber,
+              success: sendResult.success,
+              error: sendResult.error,
+            });
+          }
+        }
+
+        const successCount = sendResults.filter(r => r.success).length;
+        const failureCount = sendResults.filter(r => !r.success).length;
+        
+        result = {
+          success: successCount > 0,
+          message: `Convites enviados: ${successCount} sucesso, ${failureCount} falha(s)`,
+          results: sendResults,
+        };
+        break;
+      }
+
       case "test": {
         const message = `✅ *Teste de conexão* ✅\n\nIntegração com Evolution API funcionando corretamente! 🚀`;
         result = await sendWhatsAppMessage(settings, message);
