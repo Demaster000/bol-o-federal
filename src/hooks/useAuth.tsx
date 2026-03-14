@@ -1,7 +1,6 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
-import { jwtDecode } from 'jwt-decode';
 
 interface AuthContextType {
   user: User | null;
@@ -27,7 +26,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // 1. Tentar ler do JWT (mais rápido e resolve o problema de app_metadata não populado)
     if (currentSession?.access_token) {
       try {
-        const decodedToken: any = jwtDecode(currentSession.access_token);
+        // Decodificação manual do JWT
+        const decodedToken: any = JSON.parse(atob(currentSession.access_token.split('.')[1]));
         if (decodedToken?.app_metadata?.role === 'admin') {
           isAdminRole = true;
         }
