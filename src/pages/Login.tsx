@@ -262,9 +262,10 @@ const Login = () => {
                 type="button"
                 onClick={handleForgotPassword}
                 disabled={loading}
-                className="w-full text-center text-sm font-semibold text-primary hover:underline transition-colors py-2"
+                className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-primary hover:underline transition-colors py-2"
               >
-                🔑 Esqueci minha senha
+                <MessageCircle className="h-4 w-4" />
+                Esqueci minha senha (via WhatsApp)
               </button>
             </form>
           ) : (
