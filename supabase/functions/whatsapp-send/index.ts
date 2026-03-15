@@ -207,9 +207,11 @@ serve(async (req: Request) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        const { id, title, price, prize, draw_date } = data;
+        const { id, title, price, prize, draw_date, lottery_type_name } = data;
+        const lotteryName = lottery_type_name || "Loteria";
         const siteUrl = (settings.site_url || "").replace(/\/$/, "");
         const poolLink = siteUrl ? `${siteUrl}/?pool=${id}` : "Acesse o site";
+        const prizeFormatted = prize ? `R$ ${Number(prize).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "A definir";
         
         let deadlineCotas = "A definir";
         if (draw_date) {
@@ -218,8 +220,11 @@ serve(async (req: Request) => {
           deadlineCotas = formatDateTimeBR(minus5h);
         }
 
-        const message = `Valor da cota: R$ ${Number(price).toFixed(2)}\n` +
-          `Participe: ${poolLink}\n\n` +
+        const message = `🎰 *NOVO BOLÃO ${lotteryName.toUpperCase()}* 🎰\n` +
+          `📌 *${title}*\n\n` +
+          `💰 Prêmio estimado: *${prizeFormatted}*\n` +
+          `🎟️ Valor da cota: *R$ ${Number(price).toFixed(2)}*\n` +
+          `🔗 Participe: ${poolLink}\n\n` +
           `📌 Como funciona:\n` +
           `• Faça o Pix pelo site e guarde o comprovante.\n` +
           `• Não é necessário enviar comprovante (salvo em caso de prêmio).\n` +
