@@ -41,8 +41,8 @@ function shouldRunScheduledBroadcast(intervalMinutes: number, now = new Date()):
   return remainder === 0 || remainder === 1 || (interval > 5 && remainder === interval - 1);
 }
 
-async function getSettings(supabaseAdmin: any): Promise<WhatsAppSettings | null> {
-  const { data, error } = await supabaseAdmin
+async function getSettings(supabaseClient: any): Promise<WhatsAppSettings | null> {
+  const { data, error } = await supabaseClient
     .from("whatsapp_settings")
     .select("*")
     .limit(1)
@@ -199,7 +199,7 @@ serve(async (req: Request) => {
         });
       }
 
-      // It's a user JWT — validate admin role
+      // Validamos o token para garantir que o usuário está autenticado
       const supabaseAuth = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
       });
@@ -211,20 +211,23 @@ serve(async (req: Request) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-
-      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
-      if (!isAdmin) {
-        return new Response(JSON.stringify({ error: "Admin only" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      
+      // A segurança de administrador é delegada ao RLS da tabela 'whatsapp_settings'.
+      // Somente administradores podem ler as configurações necessárias para enviar a mensagem.
     }
 
-    const settings = await getSettings(supabaseAdmin);
+    // Usamos o cabeçalho de autorização original para ler as configurações.
+    // Se o usuário não for admin, o RLS impedirá a leitura dos dados da API do WhatsApp.
+    const supabaseClient = isInternalCall || isCronBroadcast 
+      ? supabaseAdmin 
+      : createClient(supabaseUrl, anonKey, {
+          global: { headers: { Authorization: authHeader! } },
+        });
+
+    const settings = await getSettings(supabaseClient);
     if (!settings) {
-      return new Response(JSON.stringify({ error: "WhatsApp settings not found" }), {
-        status: 400,
+      return new Response(JSON.stringify({ error: "WhatsApp settings not found or Access Denied" }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
