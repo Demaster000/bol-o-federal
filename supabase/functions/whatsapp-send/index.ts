@@ -75,8 +75,14 @@ async function sendBroadcastOpenPools(supabaseAdmin: any, settings: WhatsAppSett
       deadlineCotas = formatDateTimeBR(minus5h);
     }
 
-    const msg = `Valor da cota: R$ ${Number(pool.price_per_quota).toFixed(2)}\n` +
-      `Participe: ${poolLink}\n\n` +
+    const lotteryName = pool.lottery_types?.name || "Loteria";
+    const prizeFormatted = pool.prize_amount ? `R$ ${Number(pool.prize_amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "A definir";
+
+    const msg = `🎰 *BOLÃO ${lotteryName.toUpperCase()}* 🎰\n` +
+      `📌 *${pool.title}*\n\n` +
+      `💰 Prêmio estimado: *${prizeFormatted}*\n` +
+      `🎟️ Valor da cota: *R$ ${Number(pool.price_per_quota).toFixed(2)}*\n` +
+      `🔗 Participe: ${poolLink}\n\n` +
       `📌 Como funciona:\n` +
       `• Faça o Pix pelo site e guarde o comprovante.\n` +
       `• Não é necessário enviar comprovante (salvo em caso de prêmio).\n` +
