@@ -67,7 +67,6 @@ serve(async (req: Request) => {
         // Also try matching with common formats
         let profile = profiles?.[0];
         if (!profile) {
-          // Try matching by normalized digits
           const { data: allProfiles } = await supabaseAdmin
             .from("profiles")
             .select("user_id, phone");
@@ -86,6 +85,24 @@ serve(async (req: Request) => {
             JSON.stringify({ error: "Nenhuma conta encontrada com este número de WhatsApp" }),
             { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
+        }
+
+        // Get user email from auth
+        let userEmail = "";
+        try {
+          const { data: userData } = await supabaseAdmin.auth.admin.getUserById(profile.user_id);
+          userEmail = userData?.user?.email || "";
+        } catch (e) {
+          console.error("Error fetching user email:", e);
+        }
+
+        // Mask the email for privacy (show first 2 chars + domain)
+        let maskedEmail = "";
+        if (userEmail) {
+          const [local, domain] = userEmail.split("@");
+          if (local && domain) {
+            maskedEmail = local.slice(0, 2) + "***@" + domain;
+          }
         }
 
         // Invalidate previous codes for this user
