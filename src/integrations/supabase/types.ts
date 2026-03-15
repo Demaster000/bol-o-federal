@@ -419,6 +419,33 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_broadcast_log: {
+        Row: {
+          broadcast_type: string
+          created_at: string | null
+          id: string
+          last_run_at: string | null
+          message: string | null
+          success: boolean | null
+        }
+        Insert: {
+          broadcast_type: string
+          created_at?: string | null
+          id?: string
+          last_run_at?: string | null
+          message?: string | null
+          success?: boolean | null
+        }
+        Update: {
+          broadcast_type?: string
+          created_at?: string | null
+          id?: string
+          last_run_at?: string | null
+          message?: string | null
+          success?: boolean | null
+        }
+        Relationships: []
+      }
       whatsapp_settings: {
         Row: {
           api_key: string | null
@@ -478,13 +505,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      has_role:
+        | {
+            Args: {
+              _role: Database["public"]["Enums"]["app_role"]
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | { Args: { _role: string; _user_id: string }; Returns: boolean }
       lookup_referral_code: { Args: { _code: string }; Returns: string }
       trigger_whatsapp_broadcast: { Args: never; Returns: undefined }
     }
