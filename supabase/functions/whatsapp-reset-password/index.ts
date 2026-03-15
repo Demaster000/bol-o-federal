@@ -157,7 +157,7 @@ serve(async (req: Request) => {
         await supabaseAdmin.rpc("cleanup_expired_reset_codes");
 
         return new Response(
-          JSON.stringify({ success: true, message: "Código enviado via WhatsApp" }),
+          JSON.stringify({ success: true, message: "Código enviado via WhatsApp", email: maskedEmail }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }

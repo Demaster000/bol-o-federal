@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, MessageCircle, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, MessageCircle, ArrowLeft, ShieldCheck, Mail } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -17,12 +17,13 @@ interface WhatsAppResetDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type Step = 'phone' | 'code' | 'password' | 'success';
+type Step = 'phone' | 'code' | 'success';
 
 const WhatsAppResetDialog = ({ open, onOpenChange }: WhatsAppResetDialogProps) => {
   const [step, setStep] = useState<Step>('phone');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
+  const [maskedEmail, setMaskedEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -33,6 +34,7 @@ const WhatsAppResetDialog = ({ open, onOpenChange }: WhatsAppResetDialogProps) =
     setStep('phone');
     setPhone('');
     setCode('');
+    setMaskedEmail('');
     setPassword('');
     setConfirmPassword('');
     setShowPassword(false);
@@ -57,6 +59,7 @@ const WhatsAppResetDialog = ({ open, onOpenChange }: WhatsAppResetDialogProps) =
       if (error || data?.error) {
         toast({ title: 'Erro', description: data?.error || 'Erro ao enviar código.', variant: 'destructive' });
       } else {
+        if (data?.email) setMaskedEmail(data.email);
         toast({ title: 'Código enviado! 📱', description: 'Verifique seu WhatsApp.' });
         setStep('code');
       }
@@ -103,7 +106,7 @@ const WhatsAppResetDialog = ({ open, onOpenChange }: WhatsAppResetDialogProps) =
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-foreground">
             <MessageCircle className="h-5 w-5 text-primary" />
-            {step === 'success' ? 'Senha redefinida!' : 'Redefinir senha via WhatsApp'}
+            {step === 'success' ? 'Senha redefinida!' : 'Redefinir senha'}
           </DialogTitle>
         </DialogHeader>
 
@@ -135,6 +138,15 @@ const WhatsAppResetDialog = ({ open, onOpenChange }: WhatsAppResetDialogProps) =
 
         {step === 'code' && (
           <div className="space-y-4">
+            {maskedEmail && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 flex items-center gap-3">
+                <Mail className="h-5 w-5 text-primary flex-shrink-0" />
+                <div>
+                  <p className="text-xs text-muted-foreground">E-mail de login associado:</p>
+                  <p className="text-sm font-semibold text-foreground">{maskedEmail}</p>
+                </div>
+              </div>
+            )}
             <p className="text-sm text-muted-foreground">
               Digite o código de 6 dígitos enviado para seu WhatsApp e escolha sua nova senha.
             </p>
@@ -216,6 +228,11 @@ const WhatsAppResetDialog = ({ open, onOpenChange }: WhatsAppResetDialogProps) =
             <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
               <ShieldCheck className="h-8 w-8 text-primary" />
             </div>
+            {maskedEmail && (
+              <p className="text-sm font-medium text-foreground">
+                Login: <span className="text-primary">{maskedEmail}</span>
+              </p>
+            )}
             <p className="text-sm text-muted-foreground">
               Sua senha foi atualizada com sucesso! Agora você pode fazer login com a nova senha.
             </p>
