@@ -50,6 +50,23 @@ const Login = () => {
     return redirectUrl;
   };
 
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      toast({ title: 'Informe seu e-mail', description: 'Digite seu e-mail no campo acima para receber o link de redefinição.', variant: 'destructive' });
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setLoading(false);
+    if (error) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'E-mail enviado! 📧', description: 'Verifique sua caixa de entrada para redefinir sua senha.' });
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
