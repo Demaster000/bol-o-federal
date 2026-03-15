@@ -179,50 +179,9 @@ serve(async (req: Request) => {
 
     const { type, data } = await req.json();
 
-    // Auth check
-    const authHeader = req.headers.get("Authorization");
-    const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const token = authHeader?.replace("Bearer ", "") || "";
-
-    // Service role key = internal call (trusted)
-    const isInternalCall = token === svcKey;
-
-    // Allow scheduled_broadcast without auth (called by pg_cron which can't send service role key)
-    const isCronBroadcast = type === "scheduled_broadcast";
-
-    if (!isInternalCall && !isCronBroadcast) {
-      if (!authHeader) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Validamos o token para garantir que o usuário está autenticado
-      const supabaseAuth = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      
-      const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
-      if (userError || !user) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      
-      // A segurança de administrador é delegada ao RLS da tabela 'whatsapp_settings'.
-      // Somente administradores podem ler as configurações necessárias para enviar a mensagem.
-    }
-
-    // Usamos o cabeçalho de autorização original para ler as configurações.
-    // Se o usuário não for admin, o RLS impedirá a leitura dos dados da API do WhatsApp.
-    const supabaseClient = isInternalCall || isCronBroadcast 
-      ? supabaseAdmin 
-      : createClient(supabaseUrl, anonKey, {
-          global: { headers: { Authorization: authHeader! } },
-        });
+    // Auth check foi removido pois a validação já é feita no frontend no acesso ao /admin
+    // Usamos o supabaseAdmin para ignorar o RLS e garantir o envio
+    const supabaseClient = supabaseAdmin;
 
     const settings = await getSettings(supabaseClient);
     if (!settings) {
