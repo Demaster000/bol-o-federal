@@ -395,6 +395,7 @@ const Login = () => {
             : 'Já tem conta? Clique em "Entrar" acima para fazer login.'}
         </p>
       </div>
+      <WhatsAppResetDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen} />
     </div>
   );
 };
