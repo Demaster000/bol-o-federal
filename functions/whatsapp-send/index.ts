@@ -203,16 +203,16 @@ serve(async (req: Request) => {
       const supabaseAuth = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      const jwtToken = authHeader.replace("Bearer ", "");
-      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(jwtToken);
-      if (claimsError || !claimsData?.claims) {
+      
+      const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+      if (userError || !user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const userId = claimsData.claims.sub as string;
-      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: userId, _role: "admin" });
+
+      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
       if (!isAdmin) {
         return new Response(JSON.stringify({ error: "Admin only" }), {
           status: 403,
@@ -283,7 +283,7 @@ serve(async (req: Request) => {
             `📌 *${title}*\n` +
             `🔢 Números sorteados: *${numbers}*\n` +
             `💰 Prêmio: R$ ${prizeNum.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}\n\n` +
-            `Acesse a plataforma para verificar se você ganhou! 🍀`
+            `Parabéns aos ganhadores! 🎉💰`
           : `📊 *RESULTADO DO BOLÃO* 📊\n\n` +
             `📌 *${title}*\n` +
             `🔢 Números sorteados: *${numbers}*\n\n` +
