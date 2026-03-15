@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, Eye, EyeOff, LogIn, UserPlus, Gift } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, LogIn, UserPlus, Gift, MessageCircle } from 'lucide-react';
+import WhatsAppResetDialog from '@/components/WhatsAppResetDialog';
 import logo from '@/assets/logo.png';
 
 const Login = () => {
@@ -22,6 +22,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const { signIn, signUp, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -50,21 +51,8 @@ const Login = () => {
     return redirectUrl;
   };
 
-  const handleForgotPassword = async () => {
-    if (!email.trim()) {
-      toast({ title: 'Informe seu e-mail', description: 'Digite seu e-mail no campo acima para receber o link de redefinição.', variant: 'destructive' });
-      return;
-    }
-    setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://sortecompartilhada.com.br/reset-password',
-    });
-    setLoading(false);
-    if (error) {
-      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'E-mail enviado! 📧', description: 'Verifique sua caixa de entrada para redefinir sua senha.' });
-    }
+  const handleForgotPassword = () => {
+    setResetDialogOpen(true);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -274,9 +262,10 @@ const Login = () => {
                 type="button"
                 onClick={handleForgotPassword}
                 disabled={loading}
-                className="w-full text-center text-sm font-semibold text-primary hover:underline transition-colors py-2"
+                className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-primary hover:underline transition-colors py-2"
               >
-                🔑 Esqueci minha senha
+                <MessageCircle className="h-4 w-4" />
+                Esqueci minha senha (via WhatsApp)
               </button>
             </form>
           ) : (
@@ -406,6 +395,7 @@ const Login = () => {
             : 'Já tem conta? Clique em "Entrar" acima para fazer login.'}
         </p>
       </div>
+      <WhatsAppResetDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen} />
     </div>
   );
 };

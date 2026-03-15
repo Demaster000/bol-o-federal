@@ -13,3 +13,5 @@ project_id = "gnghwduomveqebgclnth"
     verify_jwt = false
   [functions.process-email-queue]
     verify_jwt = true
+  [functions.whatsapp-reset-password]
+    verify_jwt = false
