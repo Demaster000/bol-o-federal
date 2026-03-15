@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -47,6 +48,23 @@ const Login = () => {
       return `/?pool=${poolId}`;
     }
     return redirectUrl;
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      toast({ title: 'Informe seu e-mail', description: 'Digite seu e-mail no campo acima para receber o link de redefinição.', variant: 'destructive' });
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setLoading(false);
+    if (error) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'E-mail enviado! 📧', description: 'Verifique sua caixa de entrada para redefinir sua senha.' });
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -252,6 +270,14 @@ const Login = () => {
               >
                 {loading ? 'Entrando...' : 'Entrar'}
               </Button>
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={loading}
+                className="w-full text-center text-sm font-semibold text-primary hover:underline transition-colors py-2"
+              >
+                🔑 Esqueci minha senha
+              </button>
             </form>
           ) : (
             <form onSubmit={handleRegister} className="space-y-4">
