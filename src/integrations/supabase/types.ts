@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      facebook_post_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          current_index: number | null
+          groups: Json
+          id: string
+          image_url: string | null
+          interval_minutes: number | null
+          message: string
+          next_run_at: string | null
+          status: string | null
+          total_groups: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_index?: number | null
+          groups?: Json
+          id?: string
+          image_url?: string | null
+          interval_minutes?: number | null
+          message: string
+          next_run_at?: string | null
+          status?: string | null
+          total_groups?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_index?: number | null
+          groups?: Json
+          id?: string
+          image_url?: string | null
+          interval_minutes?: number | null
+          message?: string
+          next_run_at?: string | null
+          status?: string | null
+          total_groups?: number | null
+        }
+        Relationships: []
+      }
+      facebook_post_settings: {
+        Row: {
+          created_at: string | null
+          enabled: boolean | null
+          groups: Json | null
+          id: string
+          interval_minutes: number | null
+          n8n_webhook_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          enabled?: boolean | null
+          groups?: Json | null
+          id?: string
+          interval_minutes?: number | null
+          n8n_webhook_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          enabled?: boolean | null
+          groups?: Json | null
+          id?: string
+          interval_minutes?: number | null
+          n8n_webhook_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       lottery_types: {
         Row: {
           active: boolean | null
