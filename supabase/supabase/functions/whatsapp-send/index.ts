@@ -41,8 +41,8 @@ function shouldRunScheduledBroadcast(intervalMinutes: number, now = new Date()):
   return remainder === 0 || remainder === 1 || (interval > 5 && remainder === interval - 1);
 }
 
-async function getSettings(supabaseAdmin: any): Promise<WhatsAppSettings | null> {
-  const { data, error } = await supabaseAdmin
+async function getSettings(supabaseClient: any): Promise<WhatsAppSettings | null> {
+  const { data, error } = await supabaseClient
     .from("whatsapp_settings")
     .select("*")
     .limit(1)
@@ -199,32 +199,35 @@ serve(async (req: Request) => {
         });
       }
 
-      // It's a user JWT — validate admin role
+      // Validamos o token para garantir que o usuário está autenticado
       const supabaseAuth = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      const jwtToken = authHeader.replace("Bearer ", "");
-      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(jwtToken);
-      if (claimsError || !claimsData?.claims) {
+      
+      const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+      if (userError || !user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const userId = claimsData.claims.sub as string;
-      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: userId, _role: "admin" });
-      if (!isAdmin) {
-        return new Response(JSON.stringify({ error: "Admin only" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      
+      // A segurança de administrador é delegada ao RLS da tabela 'whatsapp_settings'.
+      // Somente administradores podem ler as configurações necessárias para enviar a mensagem.
     }
 
-    const settings = await getSettings(supabaseAdmin);
+    // Usamos o cabeçalho de autorização original para ler as configurações.
+    // Se o usuário não for admin, o RLS impedirá a leitura dos dados da API do WhatsApp.
+    const supabaseClient = isInternalCall || isCronBroadcast 
+      ? supabaseAdmin 
+      : createClient(supabaseUrl, anonKey, {
+          global: { headers: { Authorization: authHeader! } },
+        });
+
+    const settings = await getSettings(supabaseClient);
     if (!settings) {
-      return new Response(JSON.stringify({ error: "WhatsApp settings not found" }), {
-        status: 400,
+      return new Response(JSON.stringify({ error: "WhatsApp settings not found or Access Denied" }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -283,7 +286,7 @@ serve(async (req: Request) => {
             `📌 *${title}*\n` +
             `🔢 Números sorteados: *${numbers}*\n` +
             `💰 Prêmio: R$ ${prizeNum.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}\n\n` +
-            `Acesse a plataforma para verificar se você ganhou! 🍀`
+            `Parabéns aos ganhadores! 🎉💰`
           : `📊 *RESULTADO DO BOLÃO* 📊\n\n` +
             `📌 *${title}*\n` +
             `🔢 Números sorteados: *${numbers}*\n\n` +

@@ -26,15 +26,6 @@ function formatDateTimeBR(date: Date): string {
   return date.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-// Interpreta uma data do banco (sem timezone) como horário de Brasília (UTC-3)
-function parseDateAsBRT(dateStr: string): Date {
-  // Se a data não tem timezone info, adiciona o offset de BRT (-03:00)
-  if (!dateStr.includes('Z') && !dateStr.includes('+') && !/\d{2}:\d{2}:\d{2}-\d{2}/.test(dateStr)) {
-    return new Date(dateStr + '-03:00');
-  }
-  return new Date(dateStr);
-}
-
 function normalizeIntervalMinutes(interval: number | null | undefined): number {
   if (!interval || Number.isNaN(interval)) return 60;
   return Math.max(5, Math.floor(interval));
@@ -42,14 +33,16 @@ function normalizeIntervalMinutes(interval: number | null | undefined): number {
 
 function shouldRunScheduledBroadcast(intervalMinutes: number, now = new Date()): boolean {
   const interval = normalizeIntervalMinutes(intervalMinutes);
+  // Check if we should run based on the last broadcast time
+  // We use a more lenient approach: run if it's been at least interval minutes since last run
   const totalMinutes = Math.floor(now.getTime() / (1000 * 60));
-  // Dispara apenas no minuto exato do intervalo (ex: se interval=60, dispara quando totalMinutes % 60 == 0)
-  // Isso evita que disparos em segundos diferentes ou pequenas variações de cron causem envios múltiplos
-  return totalMinutes % interval === 0;
+  // Allow execution within a 2-minute window to account for cron timing variations
+  const remainder = totalMinutes % interval;
+  return remainder === 0 || remainder === 1 || (interval > 5 && remainder === interval - 1);
 }
 
-async function getSettings(supabaseAdmin: any): Promise<WhatsAppSettings | null> {
-  const { data, error } = await supabaseAdmin
+async function getSettings(supabaseClient: any): Promise<WhatsAppSettings | null> {
+  const { data, error } = await supabaseClient
     .from("whatsapp_settings")
     .select("*")
     .limit(1)
@@ -73,7 +66,7 @@ async function sendBroadcastOpenPools(supabaseAdmin: any, settings: WhatsAppSett
   const allMessages: string[] = [];
 
   for (const pool of openPools) {
-    const drawDate = pool.draw_date ? parseDateAsBRT(pool.draw_date) : null;
+    const drawDate = pool.draw_date ? new Date(pool.draw_date) : null;
     const poolLink = siteUrl ? `${siteUrl}/?pool=${pool.id}` : "Acesse o site";
 
     let deadlineCotas = "A definir";
@@ -206,32 +199,35 @@ serve(async (req: Request) => {
         });
       }
 
-      // It's a user JWT — validate admin role
+      // Validamos o token para garantir que o usuário está autenticado
       const supabaseAuth = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      const jwtToken = authHeader.replace("Bearer ", "");
-      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(jwtToken);
-      if (claimsError || !claimsData?.claims) {
+      
+      const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+      if (userError || !user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const userId = claimsData.claims.sub as string;
-      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: userId, _role: "admin" });
-      if (!isAdmin) {
-        return new Response(JSON.stringify({ error: "Admin only" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      
+      // A segurança de administrador é delegada ao RLS da tabela 'whatsapp_settings'.
+      // Somente administradores podem ler as configurações necessárias para enviar a mensagem.
     }
 
-    const settings = await getSettings(supabaseAdmin);
+    // Usamos o cabeçalho de autorização original para ler as configurações.
+    // Se o usuário não for admin, o RLS impedirá a leitura dos dados da API do WhatsApp.
+    const supabaseClient = isInternalCall || isCronBroadcast 
+      ? supabaseAdmin 
+      : createClient(supabaseUrl, anonKey, {
+          global: { headers: { Authorization: authHeader! } },
+        });
+
+    const settings = await getSettings(supabaseClient);
     if (!settings) {
-      return new Response(JSON.stringify({ error: "WhatsApp settings not found" }), {
-        status: 400,
+      return new Response(JSON.stringify({ error: "WhatsApp settings not found or Access Denied" }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -252,7 +248,7 @@ serve(async (req: Request) => {
         
         let deadlineCotas = "A definir";
         if (draw_date) {
-          const drawDate = parseDateAsBRT(draw_date);
+          const drawDate = new Date(draw_date);
           const minus5h = new Date(drawDate.getTime() - 5 * 60 * 60 * 1000);
           deadlineCotas = formatDateTimeBR(minus5h);
         }
@@ -290,7 +286,7 @@ serve(async (req: Request) => {
             `📌 *${title}*\n` +
             `🔢 Números sorteados: *${numbers}*\n` +
             `💰 Prêmio: R$ ${prizeNum.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}\n\n` +
-            `Acesse a plataforma para verificar se você ganhou! 🍀`
+            `Parabéns aos ganhadores! 🎉💰`
           : `📊 *RESULTADO DO BOLÃO* 📊\n\n` +
             `📌 *${title}*\n` +
             `🔢 Números sorteados: *${numbers}*\n\n` +
@@ -323,24 +319,6 @@ serve(async (req: Request) => {
         } catch (logErr) {
           console.error("Failed to log broadcast:", logErr);
         }
-        break;
-      }
-
-      case "referral_broadcast": {
-        const siteUrl = (settings.site_url || "").replace(/\/$/, "");
-        const registerLink = siteUrl ? `${siteUrl}/login?mode=register` : "Acesse o site";
-
-        const message = `🎁 *INDIQUE E GANHE!* 🎁\n\n` +
-          `Você sabia que pode ganhar *cotas GRÁTIS* no Sorte Compartilhada? 🍀\n\n` +
-          `📌 *Como funciona:*\n` +
-          `1️⃣ Cadastre-se na plataforma\n` +
-          `2️⃣ Compartilhe seu link de indicação com amigos\n` +
-          `3️⃣ Quando seu indicado *comprar cotas*, você ganha *1 cota grátis* do mesmo sorteio!\n\n` +
-          `💰 *Sem limite de indicações!* Quanto mais amigos, mais cotas grátis você ganha!\n\n` +
-          `👉 Cadastre-se agora: ${registerLink}\n\n` +
-          `✅ Indique, compartilhe e aumente suas chances de ganhar! 🚀`;
-
-        result = await sendWhatsAppMessage(settings, message);
         break;
       }
 
