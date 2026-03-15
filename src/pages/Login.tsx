@@ -57,7 +57,7 @@ const Login = () => {
     }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: 'https://sortecompartilhada.com.br/reset-password',
     });
     setLoading(false);
     if (error) {
