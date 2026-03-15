@@ -23,7 +23,14 @@ interface WhatsAppSettings {
 }
 
 function formatDateTimeBR(date: Date): string {
-  return date.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function normalizeIntervalMinutes(interval: number | null | undefined): number {
@@ -33,76 +40,23 @@ function normalizeIntervalMinutes(interval: number | null | undefined): number {
 
 function shouldRunScheduledBroadcast(intervalMinutes: number, now = new Date()): boolean {
   const interval = normalizeIntervalMinutes(intervalMinutes);
-  // Check if we should run based on the last broadcast time
-  // We use a more lenient approach: run if it's been at least interval minutes since last run
   const totalMinutes = Math.floor(now.getTime() / (1000 * 60));
-  // Allow execution within a 2-minute window to account for cron timing variations
   const remainder = totalMinutes % interval;
   return remainder === 0 || remainder === 1 || (interval > 5 && remainder === interval - 1);
 }
 
-async function getSettings(supabaseClient: any): Promise<WhatsAppSettings | null> {
-  const { data, error } = await supabaseClient
+async function getSettings(supabase: any): Promise<WhatsAppSettings | null> {
+  const { data, error } = await supabase
     .from("whatsapp_settings")
     .select("*")
     .limit(1)
     .single();
+
   if (error || !data) return null;
   return data as WhatsAppSettings;
 }
 
-async function sendBroadcastOpenPools(supabaseAdmin: any, settings: WhatsAppSettings): Promise<{ success: boolean; reason?: string; results?: any[]; error?: string }> {
-  const { data: openPools } = await supabaseAdmin
-    .from("pools")
-    .select("*, lottery_types(*)")
-    .eq("status", "open")
-    .order("created_at", { ascending: false });
-
-  if (!openPools || openPools.length === 0) {
-    return { success: true, reason: "Nenhum bolão aberto" };
-  }
-
-  const siteUrl = (settings.site_url || "").replace(/\/$/, "");
-  const allMessages: string[] = [];
-
-  for (const pool of openPools) {
-    const drawDate = pool.draw_date ? new Date(pool.draw_date) : null;
-    const poolLink = siteUrl ? `${siteUrl}/?pool=${pool.id}` : "Acesse o site";
-
-    let deadlineCotas = "A definir";
-    if (drawDate) {
-      const minus5h = new Date(drawDate.getTime() - 5 * 60 * 60 * 1000);
-      deadlineCotas = formatDateTimeBR(minus5h);
-    }
-
-    const msg = `Valor da cota: R$ ${Number(pool.price_per_quota).toFixed(2)}\n` +
-      `Participe: ${poolLink}\n\n` +
-      `📌 Como funciona:\n` +
-      `• Faça o Pix pelo site e guarde o comprovante.\n` +
-      `• Não é necessário enviar comprovante (salvo em caso de prêmio).\n` +
-      `• Pix feito em outra chave será devolvido.\n` +
-      `• Participação válida: Até ${deadlineCotas}\n\n` +
-      `📆 Apostas e lista de participantes serão divulgadas antes do sorteio no grupo.\n\n` +
-      `💸 Prêmio:\n` +
-      `• 10% administrador | 90% participantes.\n` +
-      `• Prêmios < R$ 600 podem ser reinvestidos.\n\n` +
-      `✅ Ao pagar, você concorda com as regras.\n` +
-      `⚠️ Bolão independente, não oficial da Caixa.`;
-
-    allMessages.push(msg);
-  }
-
-  const broadcastResults: any[] = [];
-  for (const msg of allMessages) {
-    const r = await sendWhatsAppMessage(settings, msg);
-    broadcastResults.push(r);
-  }
-
-  const anySuccess = broadcastResults.some(r => r.success);
-  return { success: anySuccess, results: broadcastResults };
-}
-
-async function sendToDestination(settings: WhatsAppSettings, destination: string, message: string): Promise<{ success: boolean; error?: string }> {
+async function sendToDestination(settings: WhatsAppSettings, destination: string, message: string) {
   const url = `${settings.api_url.replace(/\/$/, "")}/message/sendText/${settings.instance_name}`;
 
   try {
@@ -120,51 +74,94 @@ async function sendToDestination(settings: WhatsAppSettings, destination: string
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Evolution API error:", response.status, errorText);
-      return { success: false, error: `Evolution API [${response.status}]: ${errorText}` };
+      return { success: false, error: errorText };
     }
 
-    const result = await response.json();
-    console.log("WhatsApp message sent to", destination, ":", result);
     return { success: true };
   } catch (err) {
-    console.error("Error sending WhatsApp message:", err);
     return { success: false, error: String(err) };
   }
 }
 
-async function sendWhatsAppMessage(settings: WhatsAppSettings, message: string): Promise<{ success: boolean; error?: string; results?: any[] }> {
-  if (!settings.enabled || !settings.api_url || !settings.api_key || !settings.instance_name) {
-    return { success: false, error: "WhatsApp não configurado ou desabilitado" };
+async function sendWhatsAppMessage(settings: WhatsAppSettings, message: string) {
+  if (!settings.enabled) {
+    return { success: false, error: "WhatsApp desabilitado" };
   }
 
-  const results: { destination: string; success: boolean; error?: string }[] = [];
+  const results: any[] = [];
 
-  // Send to group
   if (settings.group_id) {
-    const groupResult = await sendToDestination(settings, settings.group_id, message);
-    results.push({ destination: "group", ...groupResult });
+    const r = await sendToDestination(settings, settings.group_id, message);
+    results.push({ destination: "group", ...r });
   }
 
-  // Send to channel (newsletter)
   if (settings.send_to_channel && settings.channel_id) {
-    const channelJid = settings.channel_id.includes("@") ? settings.channel_id : `${settings.channel_id}@newsletter`;
-    const channelResult = await sendToDestination(settings, channelJid, message);
-    results.push({ destination: "channel", ...channelResult });
-  }
+    const jid = settings.channel_id.includes("@")
+      ? settings.channel_id
+      : `${settings.channel_id}@newsletter`;
 
-  if (results.length === 0) {
-    return { success: false, error: "Nenhum destino configurado (grupo ou canal)" };
+    const r = await sendToDestination(settings, jid, message);
+    results.push({ destination: "channel", ...r });
   }
 
   const anySuccess = results.some(r => r.success);
-  const errors = results.filter(r => !r.success).map(r => `${r.destination}: ${r.error}`);
 
   return {
     success: anySuccess,
-    error: errors.length > 0 ? errors.join("; ") : undefined,
     results,
   };
+}
+
+async function sendBroadcastOpenPools(supabase: any, settings: WhatsAppSettings) {
+  const { data: pools } = await supabase
+    .from("pools")
+    .select("*, lottery_types(*)")
+    .eq("status", "open");
+
+  if (!pools || pools.length === 0) {
+    return { success: true, reason: "Nenhum bolão aberto" };
+  }
+
+  const siteUrl = (settings.site_url || "").replace(/\/$/, "");
+
+  const results: any[] = [];
+
+  for (const pool of pools) {
+    const drawDate = pool.draw_date ? new Date(pool.draw_date) : null;
+
+    const link = siteUrl ? `${siteUrl}/?pool=${pool.id}` : "";
+
+    let deadline = "A definir";
+
+    if (drawDate) {
+      const minus5h = new Date(drawDate.getTime() - 5 * 60 * 60 * 1000);
+      deadline = formatDateTimeBR(minus5h);
+    }
+
+    const msg =
+`Valor da cota: R$ ${Number(pool.price_per_quota).toFixed(2)}
+Participe: ${link}
+
+📌 Como funciona:
+• Faça o Pix pelo site e guarde o comprovante.
+• Não é necessário enviar comprovante (salvo em caso de prêmio).
+• Pix feito em outra chave será devolvido.
+• Participação válida: Até ${deadline}
+
+📆 Apostas e lista de participantes serão divulgadas antes do sorteio no grupo.
+
+💸 Prêmio:
+• 10% administrador | 90% participantes.
+• Prêmios < R$ 600 podem ser reinvestidos.
+
+✅ Ao pagar, você concorda com as regras.
+⚠️ Bolão independente, não oficial da Caixa.`;
+
+    const r = await sendWhatsAppMessage(settings, msg);
+    results.push(r);
+  }
+
+  return { success: results.some(r => r.success), results };
 }
 
 serve(async (req: Request) => {
@@ -173,61 +170,20 @@ serve(async (req: Request) => {
   }
 
   try {
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const { type, data } = await req.json();
+    const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Auth check
-    const authHeader = req.headers.get("Authorization");
-    const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const token = authHeader?.replace("Bearer ", "") || "";
+    const body = await req.json().catch(() => ({}));
+    const { type, data } = body;
 
-    // Service role key = internal call (trusted)
-    const isInternalCall = token === svcKey;
+    const settings = await getSettings(supabase);
 
-    // Allow scheduled_broadcast without auth (called by pg_cron which can't send service role key)
-    const isCronBroadcast = type === "scheduled_broadcast";
-
-    if (!isInternalCall && !isCronBroadcast) {
-      if (!authHeader) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Validamos o token para garantir que o usuário está autenticado
-      const supabaseAuth = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      
-      const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
-      if (userError || !user) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      
-      // A segurança de administrador é delegada ao RLS da tabela 'whatsapp_settings'.
-      // Somente administradores podem ler as configurações necessárias para enviar a mensagem.
-    }
-
-    // Usamos o cabeçalho de autorização original para ler as configurações.
-    // Se o usuário não for admin, o RLS impedirá a leitura dos dados da API do WhatsApp.
-    const supabaseClient = isInternalCall || isCronBroadcast 
-      ? supabaseAdmin 
-      : createClient(supabaseUrl, anonKey, {
-          global: { headers: { Authorization: authHeader! } },
-        });
-
-    const settings = await getSettings(supabaseClient);
     if (!settings) {
-      return new Response(JSON.stringify({ error: "WhatsApp settings not found or Access Denied" }), {
-        status: 403,
+      return new Response(JSON.stringify({ error: "WhatsApp settings not found" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -235,162 +191,122 @@ serve(async (req: Request) => {
     let result;
 
     switch (type) {
+
       case "new_pool": {
+
         if (!settings.notify_new_pool) {
-          return new Response(JSON.stringify({ success: false, reason: "Notificação de novo bolão desabilitada" }), {
-            status: 200,
+          return new Response(JSON.stringify({ success: false }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        const { id, title, price, prize, draw_date } = data;
+
+        const { id, price, draw_date } = data;
+
         const siteUrl = (settings.site_url || "").replace(/\/$/, "");
-        const poolLink = siteUrl ? `${siteUrl}/?pool=${id}` : "Acesse o site";
-        
-        let deadlineCotas = "A definir";
+        const link = siteUrl ? `${siteUrl}/?pool=${id}` : "";
+
+        let deadline = "A definir";
+
         if (draw_date) {
-          const drawDate = new Date(draw_date);
-          const minus5h = new Date(drawDate.getTime() - 5 * 60 * 60 * 1000);
-          deadlineCotas = formatDateTimeBR(minus5h);
+          const d = new Date(draw_date);
+          const minus5h = new Date(d.getTime() - 5 * 60 * 60 * 1000);
+          deadline = formatDateTimeBR(minus5h);
         }
 
-        const message = `Valor da cota: R$ ${Number(price).toFixed(2)}\n` +
-          `Participe: ${poolLink}\n\n` +
-          `📌 Como funciona:\n` +
-          `• Faça o Pix pelo site e guarde o comprovante.\n` +
-          `• Não é necessário enviar comprovante (salvo em caso de prêmio).\n` +
-          `• Pix feito em outra chave será devolvido.\n` +
-          `• Participação válida: Até ${deadlineCotas}\n\n` +
-          `📆 Apostas e lista de participantes serão divulgadas antes do sorteio no grupo.\n\n` +
-          `💸 Prêmio:\n` +
-          `• 10% administrador | 90% participantes.\n` +
-          `• Prêmios < R$ 600 podem ser reinvestidos.\n\n` +
-          `✅ Ao pagar, você concorda com as regras.\n` +
-          `⚠️ Bolão independente, não oficial da Caixa.`;
+        const message =
+`Valor da cota: R$ ${Number(price).toFixed(2)}
+Participe: ${link}
+
+Participação válida até ${deadline}`;
+
         result = await sendWhatsAppMessage(settings, message);
+
         break;
       }
 
       case "result": {
+
         if (!settings.notify_result) {
-          return new Response(JSON.stringify({ success: false, reason: "Notificação de resultado desabilitada" }), {
-            status: 200,
+          return new Response(JSON.stringify({ success: false }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        const { title, numbers, prize } = data;
-        const prizeNum = Number(prize) || 0;
-        const hasPrize = prizeNum > 0;
 
-        const message = hasPrize
-          ? `🏆 *RESULTADO DO BOLÃO* 🏆\n\n` +
-            `📌 *${title}*\n` +
-            `🔢 Números sorteados: *${numbers}*\n` +
-            `💰 Prêmio: R$ ${prizeNum.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}\n\n` +
-            `Parabéns aos ganhadores! 🎉💰`
-          : `📊 *RESULTADO DO BOLÃO* 📊\n\n` +
-            `📌 *${title}*\n` +
-            `🔢 Números sorteados: *${numbers}*\n\n` +
-            `Infelizmente não tivemos ganhadores desta vez. 😔\n` +
-            `Mas não desanime! A sorte pode estar no próximo bolão. 🍀\n` +
-            `Continue tentando, sua vez vai chegar! 💪🔥`;
+        const { title, numbers, prize } = data;
+
+        const message =
+`🏆 RESULTADO DO BOLÃO
+
+${title}
+
+Números: ${numbers}
+
+Prêmio: R$ ${Number(prize).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+
         result = await sendWhatsAppMessage(settings, message);
+
         break;
       }
 
       case "broadcast_open": {
-        if (!settings.broadcast_open_pools) {
-          return new Response(JSON.stringify({ success: false, reason: "Divulgação periódica desabilitada" }), {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
 
-        result = await sendBroadcastOpenPools(supabaseAdmin, settings);
-        
-        try {
-          await supabaseAdmin
-            .from("whatsapp_broadcast_log")
-            .insert({
-              broadcast_type: "open_pools",
-              last_run_at: new Date().toISOString(),
-              success: result.success,
-              message: result.error || result.reason || "Broadcast sent successfully",
-            });
-        } catch (logErr) {
-          console.error("Failed to log broadcast:", logErr);
-        }
+        result = await sendBroadcastOpenPools(supabase, settings);
+
         break;
       }
 
       case "scheduled_broadcast": {
-        if (!settings.broadcast_open_pools) {
-          return new Response(JSON.stringify({ success: true, reason: "Divulgação periódica desabilitada" }), {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
 
         const interval = normalizeIntervalMinutes(settings.broadcast_interval_minutes);
+
         if (!shouldRunScheduledBroadcast(interval)) {
-          return new Response(JSON.stringify({ success: true, reason: `Fora da janela do intervalo (${interval} min)` }), {
-            status: 200,
+          return new Response(JSON.stringify({ success: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
-        result = await sendBroadcastOpenPools(supabaseAdmin, settings);
-        
-        try {
-          await supabaseAdmin
-            .from("whatsapp_broadcast_log")
-            .insert({
-              broadcast_type: "open_pools",
-              last_run_at: new Date().toISOString(),
-              success: result.success,
-              message: result.error || result.reason || "Scheduled broadcast sent successfully",
-            });
-        } catch (logErr) {
-          console.error("Failed to log scheduled broadcast:", logErr);
-        }
+        result = await sendBroadcastOpenPools(supabase, settings);
+
         break;
       }
 
       case "custom": {
-        const { message } = data || {};
-        if (!message || typeof message !== "string" || message.trim().length === 0) {
-          return new Response(JSON.stringify({ error: "Mensagem não informada" }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        // Limit message length to prevent abuse
-        const sanitizedMessage = message.trim().slice(0, 4096);
-        result = await sendWhatsAppMessage(settings, sanitizedMessage);
+
+        const { message } = data;
+
+        result = await sendWhatsAppMessage(settings, message);
+
         break;
       }
 
       case "test": {
-        const message = `✅ *Teste de conexão* ✅\n\nIntegração com Evolution API funcionando corretamente! 🚀`;
-        result = await sendWhatsAppMessage(settings, message);
+
+        result = await sendWhatsAppMessage(
+          settings,
+          "✅ Integração WhatsApp funcionando"
+        );
+
         break;
       }
 
       default:
-        return new Response(JSON.stringify({ error: `Tipo desconhecido: ${type}` }), {
+        return new Response(JSON.stringify({ error: "Tipo inválido" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+
     }
 
     return new Response(JSON.stringify(result), {
-      status: result.success ? 200 : 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (err) {
-    console.error("WhatsApp send error:", err);
+
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   }
 });
