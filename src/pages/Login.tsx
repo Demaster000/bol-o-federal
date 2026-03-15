@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, Eye, EyeOff, LogIn, UserPlus, Gift } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, LogIn, UserPlus, Gift, MessageCircle } from 'lucide-react';
+import WhatsAppResetDialog from '@/components/WhatsAppResetDialog';
 import logo from '@/assets/logo.png';
 
 const Login = () => {
