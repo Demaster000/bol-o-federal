@@ -1,13 +1,13 @@
 project_id = "gnghwduomveqebgclnth"
 
-[functions.pix-create-charge]
-verify_jwt = false
-
-[functions.pix-webhook]
-verify_jwt = false
-
-[functions.pix-check-status]
-verify_jwt = false
-
-[functions.whatsapp-send]
-verify_jwt = false
+[functions]
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.pix-check-status]
+    verify_jwt = false
+  [functions.pix-create-charge]
+    verify_jwt = false
+  [functions.pix-webhook]
+    verify_jwt = false
+  [functions.whatsapp-send]
+    verify_jwt = false
