@@ -252,6 +252,14 @@ const Login = () => {
               >
                 {loading ? 'Entrando...' : 'Entrar'}
               </Button>
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={loading}
+                className="w-full text-center text-sm font-semibold text-primary hover:underline transition-colors py-2"
+              >
+                🔑 Esqueci minha senha
+              </button>
             </form>
           ) : (
             <form onSubmit={handleRegister} className="space-y-4">
